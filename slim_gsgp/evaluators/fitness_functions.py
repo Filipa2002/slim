@@ -142,3 +142,28 @@ def r2_score(y_true: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
     ss_tot = torch.sum(torch.square(y_true - torch.mean(y_true)))
     r2 = 1 - (ss_res / ss_tot)
     return r2
+
+############################################################################
+#                                                                          #
+# Created by me: size()                                                    #
+#                                                                          #
+############################################################################
+def size(y_true: torch.Tensor, y_pred: float) -> torch.Tensor:
+    """
+    Compute the size (node count) of the tree.
+    
+    In MOGP/GP evaluation, y_pred carries the tree's node count when size is calculated.
+
+    Parameters
+    ----------
+    y_true : torch.Tensor
+        True values (ignored, but needed for compatibility with other fitness signatures).
+    y_pred : float
+        The node count of the tree (received as the 'predicted value').
+
+    Returns
+    -------
+    torch.Tensor
+        Node count value.
+    """
+    return torch.tensor(y_pred)

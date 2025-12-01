@@ -19,8 +19,42 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-from slim_gsgp.utils.utils import get_best_max, get_best_min
+
+############################################################################
+#                                                                          #
+# Created by me: test_find_mo_elites_default_first_obj()                   #
+#                test_find_mo_elites_default_nsga2_logic()                 #
+#                test_find_mo_elites_ideal_candidate()                     #
+#                test_find_mo_elites_ideal_candidate_recalculates_fit()    #
+#                                                                          #
+############################################################################
+import pytest
+import torch
 import random
+from unittest.mock import MagicMock
+from slim_gsgp.utils.utils import get_best_max, get_best_min, find_mo_elites_default, find_mo_elites_ideal_candidate
+
+class MockIndiv:
+    def __init__(self, fitness, repr_val=None):
+        self.fitness = fitness
+        self.repr_ = repr_val
+        self.pareto_front = 0
+        self.crowding_distance = 0.0
+
+    def __eq__(self, other):
+        if isinstance(self.fitness, torch.Tensor) and isinstance(other.fitness, torch.Tensor):
+             return torch.equal(self.fitness, other.fitness)
+        return self.fitness == other.fitness
+
+class MockPop:
+    def __init__(self, population):
+        self.population = population
+        #try to stack fitness if they are tensors
+        try:
+             self.fit = torch.stack([ind.fitness for ind in population])
+        except:
+             self.fit = [ind.fitness for ind in population]
+
 
 def test_get_best_max():
     class IndivTest:
@@ -79,4 +113,70 @@ def test_get_best_min():
         result1, result2 = get_best_min(example_pop, 3)
 
         assert (example1 in result1 and example2 in result1 and example3 in result1 and
-                result2 == example1)
+                result2 == example1)        
+
+
+def test_find_mo_elites_default_first_obj():
+    ind_a = MockIndiv(torch.tensor([1.0, 10.0]))
+    ind_b = MockIndiv(torch.tensor([5.0, 5.0]))
+    pop = MockPop([ind_a, ind_b])   
+    elites, elite = find_mo_elites_default(
+        pop, n_elites=1, minimization_flags=[True, True], use_first_obj=True
+    )
+    assert elite == ind_a, "Expected ind_a to be the elite based on the first objective minimization."
+    assert len(elites) == 1, "Expected only one elite individual."
+
+def test_find_mo_elites_default_nsga2_logic():
+    ind_a = MockIndiv(torch.tensor([1.0, 10.0]))
+    ind_a.pareto_front = 0
+    ind_a.crowding_distance = 10.0
+    ind_b = MockIndiv(torch.tensor([10.0, 1.0]))
+    ind_b.pareto_front = 0
+    ind_b.crowding_distance = 5.0
+    ind_c = MockIndiv(torch.tensor([5.0, 5.0]))
+    ind_c.pareto_front = 1
+    
+    pop = MockPop([ind_a, ind_b, ind_c])
+    
+    pop.non_dominated_sorting = MagicMock(return_value=[[ind_a, ind_b], [ind_c]])
+    pop.calculate_crowding_distance = MagicMock()
+
+    elites, elite = find_mo_elites_default(
+        pop, n_elites=1, minimization_flags=[True, True], use_first_obj=False
+    )
+    
+    assert elite == ind_a, "Expected ind_a to be the elite based on NSGA-II logic."
+    pop.calculate_crowding_distance.assert_called()
+
+def test_find_mo_elites_ideal_candidate():    
+    ind_a = MockIndiv(torch.tensor([1.0, 1.0]))
+    ind_b = MockIndiv(torch.tensor([4.0, 4.0]))
+    pop = MockPop([ind_a, ind_b])
+    
+    ideal_values = [0.0, 0.0]
+    
+    elites, elite = find_mo_elites_ideal_candidate(
+        pop, n_elites=1, minimization_flags=[True, True], ideal_candidate_values=ideal_values
+    )
+    
+    assert elite == ind_a, "Expected ind_a to be the elite based on proximity to the ideal candidate."
+
+
+def test_find_mo_elites_ideal_candidate_recalculates_fit():
+    ind_a = MockIndiv(torch.tensor([1.0, 1.0]))
+    ind_b = MockIndiv(torch.tensor([4.0, 4.0]))
+    pop = MockPop([ind_a, ind_b])
+    
+    # Forcing fit to be None to simulate the parallel execution edge case
+    pop.fit = None
+    
+    ideal_values = [0.0, 0.0]
+    
+    # This should NOT crash, and should calculate fit internally
+    elites, elite = find_mo_elites_ideal_candidate(
+        pop, n_elites=1, minimization_flags=[True, True], ideal_candidate_values=ideal_values
+    )
+    
+    assert elite == ind_a
+    assert pop.fit is not None, "Population fit tensor should have been updated/calculated."
+    assert len(pop.fit) == 2

@@ -308,7 +308,6 @@ class GP:
                 offspring = []
 
                 # assuring the offspring do not exceed max_depth
-                # assuring the offspring do not exceed max_depth
                 if max_depth is not None:
                     offspring = []
                     while len(offspring) == 0:

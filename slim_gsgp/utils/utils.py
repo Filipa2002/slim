@@ -28,6 +28,7 @@ from slim_gsgp.algorithms.GP.representations.tree_utils import (create_full_rand
                                                                 create_grow_random_tree)
 from slim_gsgp.algorithms.GSGP.representations.tree import Tree
 from sklearn.metrics import root_mean_squared_error
+# from slim_gsgp.config.gp_config import fitness_function_options #it was generating a circular import error
 
 
 def protected_div(x1, x2):
@@ -145,7 +146,6 @@ def tensor_dimensioned_sum(dim):
 
     return tensor_sum
 
-
 def verbose_reporter(
         dataset, generation, pop_val_fitness, pop_test_fitness, timing, nodes
 ):
@@ -198,7 +198,7 @@ def verbose_reporter(
             "-----------------------------------------------------------------------------------------------------------------------------------------"
         )
         print(
-            "|         Dataset         |  Generation  |     Train Fitness     |       Test Fitness       |        "
+            "|         Dataset         |  Generation  |     Train Fitness    |       Test Fitness       |        "
             "Timing          |      Nodes       |"
         )
         print(
@@ -252,6 +252,74 @@ def verbose_reporter(
             + " " * (12 - digits_nodes)
             + "|"
         )
+
+############################################################################
+#                                                                          #
+# Created by me                                                            #
+#                                                                          #
+#                                                                          #
+#                                                                          #
+############################################################################
+def mo_verbose_reporter(
+        dataset, generation, pop_val_fitness_vector, pop_test_fitness_vector, timing, nodes
+):
+    """
+    Prints a formatted report of generation, multi-objective fitness values, timing, and node count.
+
+    Parameters
+    ----------
+    generation : int
+        Current generation number.
+    pop_val_fitness_vector : torch.Tensor or list
+        Elite's vector of fitness values (Train).
+    pop_test_fitness_vector : torch.Tensor or list, optional
+        Elite's vector of fitness values (Test/Validation).
+    timing : float
+        Time taken for the process.
+    nodes : int
+        Count of nodes in the elite individual.
+
+    Returns
+    -------
+    None
+        Outputs a formatted report to the console.
+    """
+
+    def format_fit_vector(fit_vec):
+        if fit_vec is None:
+            return "N/A"
+        if isinstance(fit_vec, torch.Tensor):
+            fit_vec = fit_vec.tolist()
+        return " | ".join([f"{f:.4f}" for f in fit_vec])
+
+    train_fit_str = format_fit_vector(pop_val_fitness_vector)
+    test_fit_str = format_fit_vector(pop_test_fitness_vector)
+    
+    num_objectives = len(pop_val_fitness_vector) if pop_val_fitness_vector is not None else 1
+    fit_header = " | ".join([f"Obj {i+1}" for i in range(num_objectives)])
+    
+    fit_col_width = max(20, (num_objectives * 9) + 5)
+    sep_line = "-" * (80 + 2 * fit_col_width) 
+    
+    str_dataset = f" {dataset:<15} "
+    str_generation = f" {generation:>6} "
+    str_timing = f" {timing:>10.4f} "
+    str_nodes = f" {nodes:>8} "
+    
+    str_train = f" {train_fit_str:<{fit_col_width}} "
+    str_test = f" {test_fit_str:<{fit_col_width}} "
+
+    if generation == 0:
+        print("\n" + sep_line)
+        print(f"| {'Dataset':<15} | {'Gen':^6} | {'Train Fitness':<{fit_col_width}} | {'Test Fitness':<{fit_col_width}} | {'Timing (s)':^10} | {'Nodes':^8} |")
+        print(sep_line)
+    
+    print(f"|{str_dataset}|{str_generation}|{str_train}|{str_test}|{str_timing}|{str_nodes}|")
+    print(sep_line)
+
+
+
+
 
 
 def get_terminals(X):
@@ -326,6 +394,172 @@ def get_best_max(population, n_elites):
     else:
         elite = population.population[np.argmax(population.fit)]
         return [elite], elite
+    
+
+
+
+############################################################################
+#                                                                          #
+# Created by me                                                            #
+#                                                                          #
+# find_mo_elites_default function                                          #
+#                                                                          #
+############################################################################
+
+def find_mo_elites_ideal_candidate(population, n_elites, minimization_flags, ideal_candidate_values: list):
+    """
+    Function to find MO elites based on the Euclidean Distance to an Ideal Point.
+
+    Parameters
+    ----------
+    population : MultiObjectivePopulation
+        The population of individuals.
+    n_elites : int
+        Number of elites to return.
+    minimization_flags : list of bool 
+        Minimization flags for each objective.
+    ideal_candidate_values : list of float
+        The user-defined ideal values for each objective.
+
+    Returns
+    -------
+    list
+        The list of elite individuals.
+    MultiObjectiveTree
+        Best elite individual.    
+    """
+    
+    if not population.population:
+        return [], None
+    
+    if population.fit is None or len(population.fit) != len(population.population):
+        # Recalculate fitness matrix if not present or inconsistent
+        fits = [ind.fitness for ind in population.population]
+        # Ensure no None values before stacking
+        if any(f is None for f in fits):
+             raise ValueError("Some individuals in the population have not been evaluated (fitness is None).")
+        population.fit = torch.stack(fits)
+        
+    num_objectives_pop = population.fit.shape[1]
+    num_objectives_ideal = len(ideal_candidate_values)
+    if num_objectives_ideal != num_objectives_pop:
+        raise ValueError(
+            f"Dimension mismatch: 'ideal_candidate_values' has {num_objectives_ideal} objectives, "
+            f"but the population fitness has {num_objectives_pop} objectives."
+        )
+
+    
+    dtype = population.fit.dtype
+    device = population.fit.device
+    ideal_point = torch.tensor(ideal_candidate_values, dtype=dtype, device=device)
+    
+    fit_matrix = population.fit
+    
+    min_vals = fit_matrix.min(dim=0).values
+    max_vals = fit_matrix.max(dim=0).values
+    
+    ranges = max_vals - min_vals
+    non_zero_range_mask = ranges > 0
+    
+    # Initialize with zeros for constant objectives
+    normalized_fit = torch.zeros_like(fit_matrix, dtype=dtype, device=device)
+    normalized_ideal_point = torch.zeros_like(ideal_point, dtype=dtype, device=device)
+    
+    if non_zero_range_mask.any():
+        valid_indices = torch.where(non_zero_range_mask)[0]
+        valid_ranges = ranges[valid_indices]
+        valid_min_vals = min_vals[valid_indices]
+        
+        # Apply Min-Max normalization for valid objectives and ideal point
+        normalized_fit[:, valid_indices] = (
+            fit_matrix[:, valid_indices] - valid_min_vals
+        ) / valid_ranges
+        
+        normalized_ideal_point[valid_indices] = (
+            ideal_point[valid_indices] - valid_min_vals
+        ) / valid_ranges
+    
+    distances = torch.sqrt(torch.pow(normalized_fit - normalized_ideal_point, 2).sum(dim=1) )
+    
+    
+    sorted_indices = torch.argsort(distances)
+    
+    elites_indices = sorted_indices[:n_elites].tolist()
+    elites = [population.population[i] for i in elites_indices]
+    
+    elite = elites[0] if elites else None
+    
+    return elites, elite
+
+
+def find_mo_elites_default(population, n_elites, minimization_flags, use_first_obj=False, fronts=None):
+    """
+    Default function to find MO elites (NSGA-II or first-objective logic).
+
+    Parameters
+    ----------
+    population : MultiObjectivePopulation
+        The population of individuals.
+    n_elites : int
+        NNumber of elites to return.
+    minimization_flags : list of bool
+        Minimization flags for each objective.
+    use_first_obj : bool, optional
+        If True, selects elites based only on the first objective. 
+        If False (NSGA-II default), uses Pareto Front 1 and Crowding Distance.
+    fronts : list of lists, optional
+        Pre-calculated Pareto fronts.
+
+    Returns
+    -------
+    list
+        The list of elite individuals.
+    MultiObjectiveTree
+        Best individual from the elites.
+    """
+    if not population.population:
+        return [], None
+    
+    if use_first_obj:
+        # First-objective logic
+        obj_index = 0
+        is_min = minimization_flags[obj_index]
+        
+        # Find the best individual based on the first objective
+        if is_min:
+            best_ind = min(population.population, key=lambda ind: ind.fitness[obj_index])
+        else:
+            best_ind = max(population.population, key=lambda ind: ind.fitness[obj_index])
+            
+        # Repeat the best individual to fill the elites list
+        elites = [best_ind] * n_elites
+        elite = best_ind
+        
+    else:
+        # NSGA-II logic
+        if fronts is None:
+            # Recalculate ranking if fronts were not provided
+            fronts = population.non_dominated_sorting(minimization_flags)
+
+        elite_front = fronts[0]
+
+
+        if len(elite_front) > 1:
+
+            if elite_front[0].crowding_distance is None:
+                population.calculate_crowding_distance(elite_front)
+
+            # for ind in elite_front:
+            #     if ind.crowding_distance is None:
+            #         ind.crowding_distance = 0.0
+
+            elite_front.sort(key=lambda ind: ind.crowding_distance, reverse=True)
+            
+        # Select the top N (or the entire F1 if smaller than N)
+        elites = elite_front[:n_elites]
+        elite = elites[0] if elites else None  
+            
+    return elites, elite
 
 
 def get_random_tree(
@@ -492,15 +726,32 @@ def gs_size(y_true, y_pred):
     return y_pred[1]
 
 
+
+
+
+
+
+############################################################################
+#                                                                          #
+# Created by me                                                            #
+#                                                                          #
+# adapted       validate_inputs                                            #
+#                                                                          #
+############################################################################
+
 def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism, n_elites, init_depth, log_path,
                     prob_const, tree_functions, tree_constants, log, verbose, minimization, n_jobs, test_elite,
-                    fitness_function, initializer, tournament_size):
+                    fitness_function, initializer, tournament_size, offspring_size):
     """
     Validates the inputs based on the specified conditions.
 
     Parameters
     ----------
-    tournament_size
+    tournament_size : int OR LIST, optional
+        Tournament size(s) to utilize during selection. Can be a single integer for GP 
+        or a list of integers (one per objective) for MOGP.
+    offspring_size : int, optional
+        The number of offspring to produce in each generation. If None, defaults to the population size.
     X_train: (torch.Tensor)
         Training input data.
     y_train: (torch.Tensor)
@@ -524,25 +775,28 @@ def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism,
     log : int, optional
         Level of detail to utilize in logging.
     verbose : int, optional
-       Level of detail to include in console output.
-    minimization : bool, optional
-        If True, the objective is to minimize the fitness function. If False, maximize it (default is True).
-    fitness_function : str, optional
-        The fitness function used for evaluating individuals (default is from gp_solve_parameters).
-    initializer : str, optional
-        The strategy for initializing the population (e.g., "grow", "full", "rhh").
+        Level of detail to include in console output.
+    minimization : bool OR LIST, optional
+        If True, the objective is to minimize the fitness function. If False, maximize it. 
+        Can be a single bool for GP or a list of bools (one per objective) for MOGP. (default is True)
     n_jobs : int, optional
         Number of parallel jobs to run (default is 1).
+    test_elite : bool, optional
+        Whether to test the elite individual on the test set after each generation.
+    fitness_function : str OR LIST, optional
+        The fitness function(s) used for evaluating individuals. Can be a single string for GP 
+        or a list of strings (one per objective) for MOGP. (default is from gp_solve_parameters)
+    initializer : str, optional
+        The strategy for initializing the population (e.g., "grow", "full", "rhh").
     prob_const : float, optional
         The probability of introducing constants into the trees during evolution.
     tree_functions : list, optional
         List of allowed functions that can appear in the trees Check documentation for the available functions.
     tree_constants : list, optional
         List of constants allowed to appear in the trees.
-    test_elite : bool, optional
-        Whether to test the elite individual on the test set after each generation.
-
     """
+    from slim_gsgp.config.gp_config import fitness_function_options
+
     if not isinstance(X_train, torch.Tensor):
         raise TypeError("X_train must be a torch.Tensor")
     if not isinstance(y_train, torch.Tensor):
@@ -563,8 +817,70 @@ def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism,
         raise TypeError("init_depth must be an int")
     if not isinstance(log_path, str):
         raise TypeError("log_path must be a str")
-    if not isinstance(tournament_size, int):
-        raise TypeError("tournament_size must be an int")
+    
+
+    if offspring_size is not None and not isinstance(offspring_size, int):
+        raise TypeError("offspring_size must be an int or None")
+############################################################################
+#                                                                          #
+# Created by me                                                            #
+#                                                                          #
+############################################################################
+
+    is_mogp = isinstance(fitness_function, list)
+    if is_mogp:
+        if not isinstance(minimization, list) or not isinstance(tournament_size, list):
+            raise TypeError("MOGP requires 'minimization' and 'tournament_size' to be lists.")
+        
+        funcs, flags, sizes = fitness_function, minimization, tournament_size
+        if not (len(funcs) == len(flags) == len(sizes) and len(funcs) > 0):
+             raise ValueError("MOGP lists ('fitness_function', 'minimization', 'tournament_size') must have the same, non-zero length.")
+
+        for i, f in enumerate(funcs):
+            if not isinstance(f, str) or f.lower() not in fitness_function_options:
+                valid_funcs = list(fitness_function_options.keys())
+                raise ValueError(f"Fitness function at index {i} ('{f}') is invalid. Valid options: {', '.join(valid_funcs)}")
+            
+            if not isinstance(flags[i], bool):
+                 raise TypeError(f"Minimization flag at index {i} must be a boolean.")
+            
+            if not isinstance(sizes[i], int) or sizes[i] <= 1:
+                raise ValueError(f"Tournament size at index {i} must be at least 2.")
+        
+        if not isinstance(initializer, str):
+            raise TypeError("initializer must be a str")
+            
+        if not isinstance(n_jobs, int):
+            raise TypeError("n_jobs must be an int")
+        assert n_jobs >= 1, "n_jobs must be at least 1"
+
+        if not isinstance(test_elite, bool):
+            raise TypeError("test_elite must be a bool")
+
+
+    else: # is_mogp é False, it's traditional GP
+        if isinstance(minimization, list) or isinstance(tournament_size, list):
+            raise TypeError("For single-objective GP, 'minimization' must be a bool and 'tournament_size' an int, not lists.")
+        
+        if not isinstance(minimization, bool):
+            raise TypeError("minimization must be a bool")
+        if not isinstance(fitness_function, str):
+            raise TypeError("fitness_function must be a str")
+        if fitness_function.lower() not in fitness_function_options:
+            valid_funcs = list(fitness_function_options.keys())
+            raise ValueError(f"fitness function must be one of: {', '.join(valid_funcs)}")
+        if not isinstance(initializer, str):
+            raise TypeError("initializer must be a str")
+        if not isinstance(tournament_size, int):
+            raise TypeError("tournament_size must be an int")
+        if tournament_size < 2:
+            raise ValueError("tournament_size must be at least 2")
+        if not isinstance(n_jobs, int):
+            raise TypeError("n_jobs must be an int")
+        assert n_jobs >= 1, "n_jobs must be at least 1"
+        if not isinstance(test_elite, bool):
+            raise TypeError("test_elite must be a bool")
+
 
     # assuring the prob_const is valid
     if not (isinstance(prob_const, float) or isinstance(prob_const, int)):
@@ -596,25 +912,6 @@ def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism,
 
     assert 0 <= verbose <= 1, "verbose level must be either 0 or 1"
 
-    if not isinstance(minimization, bool):
-        raise TypeError("minimization must be a bool")
-
-    if not isinstance(n_jobs, int):
-        raise TypeError("n_jobs must be an int")
-
-    assert n_jobs >= 1, "n_jobs must be at least 1"
-
-    if not isinstance(test_elite, bool):
-        raise TypeError("test_elite must be a bool")
-
-    if not isinstance(fitness_function, str):
-        raise TypeError("fitness_function must be a str")
-
-    if not isinstance(initializer, str):
-        raise TypeError("initializer must be a str")
-
-    if tournament_size < 2:
-        raise ValueError("tournament_size must be at least 2")
 
 
 def check_slim_version(slim_version):
