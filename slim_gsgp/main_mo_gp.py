@@ -218,11 +218,16 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
             tournament_sizes=tournament_sizes, 
             minimization_flags=minimization_flags
         )
+
     if ideal_candidate_values is not None:
-        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, use_first_obj=False, fronts=None: \
-        find_mo_elites_ideal_candidate(pop, n, min_flags, ideal_candidate_values)
+        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None: \
+            find_mo_elites_ideal_candidate(pop, n, min_flags, ideal_candidate_values)          
+    elif survival_strategy == "generational" and n_elites > 0:
+        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None: \
+             find_mo_elites_default(pop, n, min_flags, use_first_obj=True, fronts=fronts)          
     else:
         gp_parameters["find_elit_func"] = find_mo_elites_default
+        
     if survival_strategy == "nsga2":
         algo = "MOGP_NSGAII"
         survival_op = nsga2_survival(minimization_flags)
@@ -286,20 +291,20 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
         curr_dataset=dataset_name,
         **gp_solve_parameters
     )
-
-    log_settings(
-        path=log_path[:-4] + "_settings.csv",
-        settings_dict=[gp_solve_parameters,
-                       gp_parameters,
-                       gp_pi_init,
-                       {'minimization_flags': minimization_flags,
-                        'tournament_sizes': tournament_sizes,
-                        'fitness_functions_names': fitness_functions,
-                        'survival_strategy': survival_strategy,
-                        'selector_strategy': selector_strategy}
-                       ],
-        unique_run_id=unique_run_id,
-    )
+    if log_level > 0:
+        log_settings(
+            path=log_path[:-4] + "_settings.csv",
+            settings_dict=[gp_solve_parameters,
+                           gp_parameters,
+                           gp_pi_init,
+                           {'minimization_flags': minimization_flags,
+                            'tournament_sizes': tournament_sizes,
+                            'fitness_functions_names': fitness_functions,
+                            'survival_strategy': survival_strategy,
+                            'selector_strategy': selector_strategy}
+                        ],
+            unique_run_id=unique_run_id,
+        )
 
     return optimizer.elite
 

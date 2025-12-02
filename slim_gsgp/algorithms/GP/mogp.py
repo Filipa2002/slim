@@ -278,19 +278,28 @@ class MOGP(GP):
 
                 # assuring the offspring do not exceed max_depth
                 if max_depth is not None:
-                    while (
-                        depth_calculator(offs1) > max_depth 
-                        or depth_calculator(offs2) > max_depth
-                    ):
+                    offspring = []
+                    while len(offspring) == 0:
+                        d1 = depth_calculator(offs1)
+                        d2 = depth_calculator(offs2)
+                        # if at least one offspring is valid, we keep it (avoids repeated calculations)
+                        if d1 <= max_depth:
+                            offspring.append(offs1)
+                        if d2 <= max_depth:
+                            offspring.append(offs2)
+                        
+                        if len(offspring) > 0:
+                            break  
+                        # if both are invalid, retry crossover
                         offs1, offs2 = self.crossover(
                             p1.repr_, 
                             p2.repr_, 
                             p1.node_count, 
                             p2.node_count
                         )
-
-                #grouping the offspring in a list to be added to the offspring population
-                offspring = [offs1, offs2]
+                # if no valid offspring found after attempts, offspring remains empty and the loop continues
+                else:
+                    offspring = [offs1, offs2]
             
             else: # if mutation was chosen
                 # choosing a parent

@@ -264,4 +264,3 @@ def tournament_selection_nsga2(pool_size=2):
         return best
 
     return ts
-

@@ -175,7 +175,17 @@ def test_validate_tournament_size_wrong_value():
                         valid_elitism, valid_n_elites, valid_init_depth, valid_log_path, valid_prob_const,
                         valid_tree_functions, valid_tree_constants, valid_log, valid_verbose, valid_minimization,
                         valid_n_jobs, valid_test_elite, valid_fitness_function, valid_initializer, -1, valid_offspring_size)
-        
+
+#MOGP specific tests
+def test_validate_offspring_size_type():
+    # Test for offspring_size type validation
+    with pytest.raises(TypeError, match="offspring_size must be an int or None"):
+        validate_inputs(valid_X_train, valid_y_train, valid_X_test, valid_y_test, valid_pop_size, valid_n_iter,
+                        valid_elitism, valid_n_elites, valid_init_depth, valid_log_path, valid_prob_const,
+                        valid_tree_functions, valid_tree_constants, valid_log, valid_verbose, valid_minimization,
+                        valid_n_jobs, valid_test_elite, valid_fitness_function, valid_initializer, 
+                        valid_tournament_size, "invalid")  
+
 # Tests for multi-objective specific validations
 def test_validate_mo_mismatch_lengths():
     # fitness list len 2, minimization list len 1 (mismatch)
@@ -191,7 +201,7 @@ def test_validate_mo_mismatch_lengths():
                         valid_offspring_size)
 
 def test_validate_mo_invalid_minimization_type():
-    #minimization list with a non-bool entry
+    # minimization list with a non-bool entry
     with pytest.raises(TypeError, match="Minimization flag at index 1 must be a boolean"):
         validate_inputs(valid_X_train, valid_y_train, valid_X_test, valid_y_test, valid_pop_size, valid_n_iter,
                         valid_elitism, valid_n_elites, valid_init_depth, valid_log_path, valid_prob_const,
@@ -239,5 +249,5 @@ def test_validate_so_requires_singles():
                         valid_n_jobs, valid_test_elite, 
                         "rmse",
                         valid_initializer, 
-                        3, 
+                        2, 
                         valid_offspring_size)

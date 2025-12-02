@@ -83,7 +83,6 @@ class MockMOPopulation(MultiObjectivePopulation):
             self.fit = None
 
 
-
 #################### MultiObjectiveTree Tests ####################
 # 1. Test Initialization
 def test_mo_tree_initialization_defaults():
@@ -285,13 +284,13 @@ def test_mo_gp_elitism_calculates_correct_offspring_count(mock_evolve):
     pop_size = 20
     n_elites = 2
     
-    #execute mo_gp with elitism=True and n_elites=2
+    #execute mo_gp with survival_strategy="generational" and n_elites=2
     mo_gp(
         X_train=valid_X_train, 
         y_train=valid_y_train, 
         pop_size=pop_size,
         n_elites=n_elites,
-        elitism=True,
+        survival_strategy="generational",
         n_iter=1,
         fitness_functions=valid_mo_functions,
         minimization_flags=valid_mo_min_flags,
@@ -299,7 +298,8 @@ def test_mo_gp_elitism_calculates_correct_offspring_count(mock_evolve):
         dataset_name="test_ds",
         test_elite=False
     )
-    # confirm that evolve_population was called with offspring_size = pop_size - n_elites = 18
+    
+    # confirm that evolve_population was called with offspring_size = pop_size - n_elites
     assert mock_evolve.called
     _, kwargs = mock_evolve.call_args
     assert kwargs['offspring_size'] == (pop_size - n_elites)
@@ -381,7 +381,7 @@ def test_mo_gp_invalid_minimization_flag_type():
 #4.
 def test_mo_gp_invalid_offspring_size():
     """Checks if mo_gp fails when offspring_size is less than 1."""
-    with pytest.raises(ValueError, match="offspring_size must be greater than zero."):
+    with pytest.raises(ValueError, match=r"Calculated offspring_size is .* \(<=0\)"):
         mo_gp(
             X_train=valid_X_train, 
             y_train=valid_y_train, 
@@ -432,14 +432,14 @@ def test_mo_gp_slot_reservation_elitism_active(mock_default_finder, mock_ideal_f
         y_train=valid_y_train, 
         n_elites=2,
         n_iter=valid_n_iter,
-        elitism=True,
+        survival_strategy="generational",
         fitness_functions=valid_mo_functions,
         minimization_flags=valid_mo_min_flags,
         tournament_sizes=valid_mo_tournament_sizes,
         pop_size=30,
         seed=valid_seed,
-        dataset_name="test_ds", #ADDED
-        test_elite=False #ADDED
+        dataset_name="test_ds",
+        test_elite=False
     )
     
     # It doesn't verify the exact content of the final pool but ensures that the elite function was called and that the algorithm ran
@@ -548,7 +548,7 @@ def test_mo_gp_custom_offspring_size():
             pop_size=20,
             offspring_size=10,
             n_iter=2,
-            elitism=False,
+            survival_strategy="nsga2",
             fitness_functions=valid_mo_functions,
             minimization_flags=valid_mo_min_flags,
             tournament_sizes=valid_mo_tournament_sizes,

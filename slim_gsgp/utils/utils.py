@@ -28,8 +28,6 @@ from slim_gsgp.algorithms.GP.representations.tree_utils import (create_full_rand
                                                                 create_grow_random_tree)
 from slim_gsgp.algorithms.GSGP.representations.tree import Tree
 from sklearn.metrics import root_mean_squared_error
-# from slim_gsgp.config.gp_config import fitness_function_options #it was generating a circular import error
-
 
 def protected_div(x1, x2):
     """Implements the division protected against zero denominator
@@ -284,43 +282,53 @@ def mo_verbose_reporter(
     None
         Outputs a formatted report to the console.
     """
+    
+    # Determine number of objectives
+    if pop_val_fitness_vector is not None:
+        num_objs = len(pop_val_fitness_vector)
+    elif pop_test_fitness_vector is not None:
+        num_objs = len(pop_test_fitness_vector)
+    else:
+        num_objs = 1 
 
-    def format_fit_vector(fit_vec):
-        if fit_vec is None:
+    # Set column width dynamically
+    width_per_obj = 10 
+    fit_col_width = max(20, (num_objs * width_per_obj) + (num_objs - 1) * 3)
+
+    # Helper to format fitness vectors
+    def format_vec(vec):
+        if vec is None:
             return "N/A"
-        if isinstance(fit_vec, torch.Tensor):
-            fit_vec = fit_vec.tolist()
-        return " | ".join([f"{f:.4f}" for f in fit_vec])
+        if isinstance(vec, torch.Tensor):
+            vec = vec.tolist()
+        return " | ".join([f"{f:.4f}" for f in vec])
 
-    train_fit_str = format_fit_vector(pop_val_fitness_vector)
-    test_fit_str = format_fit_vector(pop_test_fitness_vector)
-    
-    num_objectives = len(pop_val_fitness_vector) if pop_val_fitness_vector is not None else 1
-    fit_header = " | ".join([f"Obj {i+1}" for i in range(num_objectives)])
-    
-    fit_col_width = max(20, (num_objectives * 9) + 5)
-    sep_line = "-" * (80 + 2 * fit_col_width) 
-    
-    str_dataset = f" {dataset:<15} "
-    str_generation = f" {generation:>6} "
-    str_timing = f" {timing:>10.4f} "
-    str_nodes = f" {nodes:>8} "
-    
-    str_train = f" {train_fit_str:<{fit_col_width}} "
-    str_test = f" {test_fit_str:<{fit_col_width}} "
+    train_str = format_vec(pop_val_fitness_vector)
+    test_str = format_vec(pop_test_fitness_vector)
 
+    # dataset + gen + 2*fit(width) + time + nodes + formatting chars
+    total_width = 15 + 6 + 2 * fit_col_width + 10 + 8 + 19 
+    sep_line = "-" * total_width
+
+    # Header
     if generation == 0:
         print("\n" + sep_line)
-        print(f"| {'Dataset':<15} | {'Gen':^6} | {'Train Fitness':<{fit_col_width}} | {'Test Fitness':<{fit_col_width}} | {'Timing (s)':^10} | {'Nodes':^8} |")
+        header = (
+            f"| {'Dataset':<15} | {'Gen':^6} | "
+            f"{'Train Fitness':<{fit_col_width}} | "
+            f"{'Test Fitness':<{fit_col_width}} | "
+            f"{'Time':^10} | {'Nodes':^8} |"
+        )
+        print(header)
         print(sep_line)
-    
-    print(f"|{str_dataset}|{str_generation}|{str_train}|{str_test}|{str_timing}|{str_nodes}|")
-    print(sep_line)
 
-
-
-
-
+    row = (
+        f"| {dataset:<15} | {generation:^6} | "
+        f"{train_str:<{fit_col_width}} | "
+        f"{test_str:<{fit_col_width}} | "
+        f"{timing:^10.4f} | {nodes:^8} |"
+    )
+    print(row)
 
 def get_terminals(X):
     """
@@ -723,13 +731,10 @@ def gs_size(y_true, y_pred):
     int
         The size of the predicted values.
     """
+    if isinstance(y_pred, (int, float)):
+        return y_pred
+
     return y_pred[1]
-
-
-
-
-
-
 
 ############################################################################
 #                                                                          #

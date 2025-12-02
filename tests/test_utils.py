@@ -33,7 +33,7 @@ import torch
 import random
 from unittest.mock import MagicMock
 from slim_gsgp.utils.utils import get_best_max, get_best_min, find_mo_elites_default, find_mo_elites_ideal_candidate
-
+    
 class MockIndiv:
     def __init__(self, fitness, repr_val=None):
         self.fitness = fitness
@@ -45,16 +45,26 @@ class MockIndiv:
         if isinstance(self.fitness, torch.Tensor) and isinstance(other.fitness, torch.Tensor):
              return torch.equal(self.fitness, other.fitness)
         return self.fitness == other.fitness
+    
+    def __repr__(self):
+        return f"Indiv({self.fitness})"
+
 
 class MockPop:
     def __init__(self, population):
         self.population = population
-        #try to stack fitness if they are tensors
+        # try to stack fitness if they are tensors
         try:
              self.fit = torch.stack([ind.fitness for ind in population])
         except:
              self.fit = [ind.fitness for ind in population]
 
+    # Placeholder methods so they can be mocked in tests
+    def non_dominated_sorting(self, minimization_flags):
+        return []
+    
+    def calculate_crowding_distance(self, front):
+        pass
 
 def test_get_best_max():
     class IndivTest:
@@ -115,7 +125,6 @@ def test_get_best_min():
         assert (example1 in result1 and example2 in result1 and example3 in result1 and
                 result2 == example1)        
 
-
 def test_find_mo_elites_default_first_obj():
     ind_a = MockIndiv(torch.tensor([1.0, 10.0]))
     ind_b = MockIndiv(torch.tensor([5.0, 5.0]))
@@ -129,24 +138,29 @@ def test_find_mo_elites_default_first_obj():
 def test_find_mo_elites_default_nsga2_logic():
     ind_a = MockIndiv(torch.tensor([1.0, 10.0]))
     ind_a.pareto_front = 0
-    ind_a.crowding_distance = 10.0
+    ind_a.crowding_distance = None 
     ind_b = MockIndiv(torch.tensor([10.0, 1.0]))
     ind_b.pareto_front = 0
-    ind_b.crowding_distance = 5.0
+    ind_b.crowding_distance = None
     ind_c = MockIndiv(torch.tensor([5.0, 5.0]))
     ind_c.pareto_front = 1
     
     pop = MockPop([ind_a, ind_b, ind_c])
     
     pop.non_dominated_sorting = MagicMock(return_value=[[ind_a, ind_b], [ind_c]])
-    pop.calculate_crowding_distance = MagicMock()
+    
+    def mock_calc_cd(front):
+        if ind_a in front: ind_a.crowding_distance = 10.0
+        if ind_b in front: ind_b.crowding_distance = 5.0
+            
+    pop.calculate_crowding_distance = MagicMock(side_effect=mock_calc_cd)
 
     elites, elite = find_mo_elites_default(
         pop, n_elites=1, minimization_flags=[True, True], use_first_obj=False
     )
-    
-    assert elite == ind_a, "Expected ind_a to be the elite based on NSGA-II logic."
+
     pop.calculate_crowding_distance.assert_called()
+    assert elite == ind_a, "Expected ind_a to be the elite based on NSGA-II logic."
 
 def test_find_mo_elites_ideal_candidate():    
     ind_a = MockIndiv(torch.tensor([1.0, 1.0]))
@@ -160,7 +174,6 @@ def test_find_mo_elites_ideal_candidate():
     )
     
     assert elite == ind_a, "Expected ind_a to be the elite based on proximity to the ideal candidate."
-
 
 def test_find_mo_elites_ideal_candidate_recalculates_fit():
     ind_a = MockIndiv(torch.tensor([1.0, 1.0]))

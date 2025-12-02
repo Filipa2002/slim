@@ -64,7 +64,13 @@ class MultiObjectivePopulation(Population):
         # Compute fitness for each objective
         fits_per_objective = []
         for ffunc in fitness_functions:
-            fits_for_this_objective = [ffunc(y, y_pred_ind) for y_pred_ind in y_preds]
+
+            func_name = ffunc.__name__ if hasattr(ffunc, "__name__") else str(ffunc)
+            if "size" in func_name.lower():
+                fits_for_this_objective = [ffunc(y, individual.node_count) for individual in self.population]
+            else:
+                fits_for_this_objective = [ffunc(y, y_pred_ind) for y_pred_ind in y_preds]
+
             fits_per_objective.append(torch.tensor(fits_for_this_objective))
         
         fitness_matrix = torch.stack(fits_per_objective).T
@@ -74,7 +80,6 @@ class MultiObjectivePopulation(Population):
             individual.fitness = fitness_matrix[i]
             
         self.fit = fitness_matrix
-
 
     def non_dominated_sorting(self, minimization_flags: list):
         """

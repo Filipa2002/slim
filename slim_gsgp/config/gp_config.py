@@ -27,7 +27,7 @@ from slim_gsgp.initializers.initializers import rhh, grow, full
 from slim_gsgp.selection.selection_algorithms import tournament_selection_min
 
 from slim_gsgp.evaluators.fitness_functions import *
-from slim_gsgp.utils.utils import protected_div
+import slim_gsgp.utils.utils as utils
 import torch
 
 # Define functions and constants
@@ -35,7 +35,7 @@ FUNCTIONS = {
     'add': {'function': torch.add, 'arity': 2},
     'subtract': {'function': torch.sub, 'arity': 2},
     'multiply': {'function': torch.mul, 'arity': 2},
-    'divide': {'function': protected_div, 'arity': 2}
+    'divide': {'function': utils.protected_div, 'arity': 2}
 }
 
 CONSTANTS = {
@@ -86,9 +86,20 @@ fitness_function_options = {
     "mse": mse,
     "mae": mae,
     "mae_int": mae_int,
-    "signed_errors": signed_errors
+    "signed_errors": signed_errors,
+    "r2_score": r2_score,
+    "size": utils.gs_size
 }
-
+#################################################################################
+#                                                                               #
+# Created by me (this and "size" and "r2_score" into fitness_function_options)  #
+#                                                                               #
+#################################################################################
+mo_parameters = {
+    "mo_fitness_functions": ["rmse", "size"], 
+    "mo_minimization_flags": [True, True],
+    "mo_tournament_sizes": [4, 2], 
+}
 initializer_options = {
     "rhh": rhh,
     "grow": grow,

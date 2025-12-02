@@ -23,9 +23,9 @@ import csv
 import os.path
 from copy import copy
 from uuid import UUID
+from typing import Union, List
 
 import pandas as pd
-
 
 def log_settings(path: str, settings_dict: list, unique_run_id: UUID) -> None:
     """
@@ -53,7 +53,6 @@ def log_settings(path: str, settings_dict: list, unique_run_id: UUID) -> None:
         writer = csv.writer(file)
         writer.writerow(infos)
 
-
 def merge_settings(sd1: dict, sd2: dict, sd3: dict, sd4: dict) -> dict:
     """
     Merge multiple settings dictionaries into one.
@@ -77,9 +76,6 @@ def merge_settings(sd1: dict, sd2: dict, sd3: dict, sd4: dict) -> dict:
     return {**sd1, **sd2, **sd3, **sd4}
 
 
-
-
-
 ############################################################################
 #                                                                          #
 # Created by me                                                            #
@@ -93,17 +89,15 @@ def merge_settings(sd1: dict, sd2: dict, sd3: dict, sd4: dict) -> dict:
 ############################################################################
 
 
-
-
 def logger(
     path: str,
     generation: int,
     #elite_fit: float,
-    elite_fit: str or float,
+    elite_fit: Union[float, str],
     timing: float,
     nodes: int,
-    additional_infos: list = None,
-    run_info: list = None,
+    additional_infos: List = None,
+    run_info: List = None,
     seed: int = 0,
 ) -> None:
     """
@@ -114,16 +108,9 @@ def logger(
     path : str
         Path to the CSV file.
     generation : int
-        Current generation number.
-
-
-    #elite_fit : float
-        #Elite's validation fitness value.    
+        Current generation number. 
     elite_fit : float or str
         Fitness value(s) of the elite individual.
-
-
-
     timing : float
         Time taken for the process.
     nodes : int
@@ -145,15 +132,9 @@ def logger(
         writer = csv.writer(file)
         infos = copy(run_info) if run_info is not None else []
         #infos.extend([seed, generation, float(elite_fit), timing, nodes])
-
-
         infos.extend([seed, generation, elite_fit, timing, nodes])
 
-
-
-
-
-
+        #old:
         # if additional_infos is not None:
         #     try:
         #         additional_infos[0] = float(additional_infos[0])
@@ -163,33 +144,27 @@ def logger(
 
         # writer.writerow(infos)
         
-        if additional_infos is not None:            
-            if isinstance(additional_infos[0], str) and additional_infos[0] != "N/A":
-                 pass
-            elif additional_infos[0] is None:
-                additional_infos[0] = "None"
-            
-            infos.extend(additional_infos)
+        if additional_infos is not None:
+            processed_infos = []
+            for info in additional_infos:
+                if info is None:
+                    processed_infos.append("None")
+                else:
+                    processed_infos.append(info)
+            infos.extend(processed_infos)
 
         writer.writerow(infos)
 
 
 
 
-
-
-
-
-
-
-
-def drop_experiment_from_logger(experiment_id: str or int, log_path: str) -> None:
+def drop_experiment_from_logger(experiment_id: Union[str, int], log_path: str) -> None:
     """
     Remove an experiment from the logger CSV file. If the given experiment_id is -1, the last saved experiment is removed.
 
     Parameters
     ----------
-    experiment_id : str or int
+    experiment_id : Union[str, int]
         The experiment ID to be removed. If -1, the most recent experiment is removed.
     log_path : str
         Path to the file containing the logging information.
@@ -198,7 +173,10 @@ def drop_experiment_from_logger(experiment_id: str or int, log_path: str) -> Non
     -------
     None
     """
-    logger_data = pd.read_csv(log_path)
+    if not os.path.exists(log_path):
+        return
+    
+    logger_data = pd.read_csv(log_path, header=None)
 
     # If we choose to remove the last stored experiment
     if experiment_id == -1:
