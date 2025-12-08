@@ -193,3 +193,51 @@ def test_find_mo_elites_ideal_candidate_recalculates_fit():
     assert elite == ind_a
     assert pop.fit is not None, "Population fit tensor should have been updated/calculated."
     assert len(pop.fit) == 2
+
+
+def test_find_mo_elites_fills_from_next_fronts():
+    # Create individuals
+    # Create individuals:Front 0 and A (CD=100) and B (CD=50) -> Best front
+    ind_a = MockIndiv(fitness=[1, 10])
+    ind_a.pareto_front = 0
+    ind_a.crowding_distance = 100.0
+    
+    ind_b = MockIndiv(fitness=[10, 1])
+    ind_b.pareto_front = 0
+    ind_b.crowding_distance = 50.0
+    
+    # Front 1: C (CD=20) and D (CD=1) -> Second best front
+    ind_c = MockIndiv(fitness=[2, 8])
+    ind_c.pareto_front = 1
+    ind_c.crowding_distance = 20.0
+
+    ind_d = MockIndiv(fitness=[8, 2])
+    ind_d.pareto_front = 1
+    ind_d.crowding_distance = 1.0 
+    
+    pop_list = [ind_a, ind_b, ind_c, ind_d]
+    pop = MockPop(pop_list)
+    
+    # Mocking: Simulate non_dominated_sorting returning separated fronts
+    fronts = [[ind_a, ind_b], [ind_c, ind_d]]
+    pop.non_dominated_sorting = MagicMock(return_value=fronts)
+    
+    # Mocking: crowding distance calculation
+    pop.calculate_crowding_distance = MagicMock() 
+
+    # Execute: Ask for 3 elites (Need 2 from Front 0 + 1 from Front 1)
+    elites, best_elite = find_mo_elites_default(
+        pop, n_elites=3, minimization_flags=[True, True], use_first_obj=False
+    )
+    
+    # Assertions
+    assert len(elites) == 3, "Should return exactly 3 elites."
+    
+    # Check if correct individuals are selected
+    assert ind_a in elites, "Ind A (Front 0) must be included."
+    assert ind_b in elites, "Ind B (Front 0) must be included."
+    assert ind_c in elites, "Ind C (Front 1, Best CD) must be included to fill quota."
+    assert ind_d not in elites, "Ind D (Front 1, Worst CD) should be left out."
+    
+    # Check best elite logic (should be the best from Front 0)
+    assert best_elite == ind_a, "Best Elite should be Ind A (Front 0, Highest CD)."

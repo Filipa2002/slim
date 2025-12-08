@@ -498,6 +498,55 @@ def find_mo_elites_ideal_candidate(population, n_elites, minimization_flags, ide
     elite = elites[0] if elites else None
     
     return elites, elite
+######################
+
+def find_mo_elites_default(population, n_elites, minimization_flags, use_first_obj=False, fronts=None):
+    if not population.population:
+        return [], None
+    
+    if use_first_obj:
+        # First-objective logic (Mantém-se igual para o Cenário 4)
+        obj_index = 0
+        is_min = minimization_flags[obj_index]
+        
+        if is_min:
+            best_ind = min(population.population, key=lambda ind: ind.fitness[obj_index])
+        else:
+            best_ind = max(population.population, key=lambda ind: ind.fitness[obj_index])
+            
+        elites = [best_ind] * n_elites
+        elite = best_ind
+        
+    else:
+        # NSGA-II logic (Atualizada para Multi-Frente)
+        if fronts is None:
+            fronts = population.non_dominated_sorting(minimization_flags)
+
+        elites = []
+        
+        # Iterar pelas frentes (0, 1, 2...) até ter elites suficientes
+        for front in fronts:
+            if len(elites) >= n_elites:
+                break
+                
+            # Calcular Crowding Distance se necessário (para desempatar dentro da frente)
+            if len(front) > 0:
+                if front[0].crowding_distance is None:
+                    population.calculate_crowding_distance(front)
+                
+                # Ordenar por CD decrescente (maior diversidade é melhor)
+                front.sort(key=lambda ind: ind.crowding_distance, reverse=True)
+            
+            # Calcular quantos faltam para encher o pedido
+            missing = n_elites - len(elites)
+            
+            # Adicionar os melhores desta frente
+            elites.extend(front[:missing])
+
+        # O "Melhor Elite" é sempre o primeiro da lista (Frente 0, Maior CD)
+        elite = elites[0] if elites else None  
+            
+    return elites, elite
 
 
 def find_mo_elites_default(population, n_elites, minimization_flags, use_first_obj=False, fronts=None):
@@ -549,22 +598,27 @@ def find_mo_elites_default(population, n_elites, minimization_flags, use_first_o
             # Recalculate ranking if fronts were not provided
             fronts = population.non_dominated_sorting(minimization_flags)
 
-        elite_front = fronts[0]
+        elites = []
 
-
-        if len(elite_front) > 1:
-
-            if elite_front[0].crowding_distance is None:
-                population.calculate_crowding_distance(elite_front)
-
-            # for ind in elite_front:
-            #     if ind.crowding_distance is None:
-            #         ind.crowding_distance = 0.0
-
-            elite_front.sort(key=lambda ind: ind.crowding_distance, reverse=True)
+        # Iterate through fronts (0, 1, 2...) until enough elites are collected
+        for front in fronts:
+            if len(elites) >= n_elites:
+                break
             
-        # Select the top N (or the entire F1 if smaller than N)
-        elites = elite_front[:n_elites]
+            # Calculate Crowding Distance if needed (to break ties within the front)
+            if len(front) > 0:
+                if front[0].crowding_distance is None:
+                    population.calculate_crowding_distance(front)
+                
+                # Sort by descending Crowding Distance
+                front.sort(key=lambda ind: ind.crowding_distance, reverse=True)
+            
+            missing = n_elites - len(elites) #how many are still needed
+            
+            # Add the best individuals from this front
+            elites.extend(front[:missing])
+
+        # The "Best Elite"
         elite = elites[0] if elites else None  
             
     return elites, elite
