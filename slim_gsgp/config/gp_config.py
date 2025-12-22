@@ -29,21 +29,22 @@ from slim_gsgp.selection.selection_algorithms import tournament_selection_min
 from slim_gsgp.evaluators.fitness_functions import *
 import slim_gsgp.utils.utils as utils
 import torch
+import random
 
 # Define functions and constants
 FUNCTIONS = {
     'add': {'function': torch.add, 'arity': 2},
     'subtract': {'function': torch.sub, 'arity': 2},
     'multiply': {'function': torch.mul, 'arity': 2},
-    'divide': {'function': utils.protected_div, 'arity': 2}
+    'divide': {'function': utils.protected_div, 'arity': 2},
+    'mod': {'function': utils.protected_mod, 'arity': 2},
+    'pow': {'function': utils.protected_pow, 'arity': 2},
 }
 
+random.seed(47)
 CONSTANTS = {
-    'constant_2': lambda _: torch.tensor(2.0),
-    'constant_3': lambda _: torch.tensor(3.0),
-    'constant_4': lambda _: torch.tensor(4.0),
-    'constant_5': lambda _: torch.tensor(5.0),
-    'constant__1': lambda _: torch.tensor(-1.0)
+    f'constant_{i}': lambda _, val=random.uniform(-1, 1): torch.tensor(val)
+    for i in range(10)
 }
 
 # Set parameters
@@ -77,7 +78,7 @@ gp_parameters = {
 gp_pi_init = {
     'FUNCTIONS': FUNCTIONS,
     'CONSTANTS': CONSTANTS,
-    "p_c": 0,
+    "p_c": 0.2,
     "init_depth": 6
 }
 
@@ -88,17 +89,20 @@ fitness_function_options = {
     "mae_int": mae_int,
     "signed_errors": signed_errors,
     "r2_score": r2_score,
-    "size": utils.gs_size
+    "size": utils.gs_size,
+    "nao": utils.num_nao,
+    "naoc": utils.num_consecutive_nao,
+    "features": utils.num_features
 }
-#################################################################################
-#                                                                               #
-# Created by me (this and "size" and "r2_score" into fitness_function_options)  #
-#                                                                               #
-#################################################################################
+###################################################################################################
+#                                                                                                 #
+# Created by me (this and "size","r2_score","nao", "c...nao", "features" into ffunction_options)  #
+#                                                                                                 #
+###################################################################################################
 mo_parameters = {
     "mo_fitness_functions": ["rmse", "size"], 
     "mo_minimization_flags": [True, True],
-    "mo_tournament_sizes": [4, 2], 
+    "mo_tournament_sizes": [2, 2], 
 }
 initializer_options = {
     "rhh": rhh,

@@ -63,15 +63,22 @@ class MultiObjectivePopulation(Population):
 
         # Compute fitness for each objective
         fits_per_objective = []
+
         for ffunc in fitness_functions:
-
             func_name = ffunc.__name__ if hasattr(ffunc, "__name__") else str(ffunc)
-            if "size" in func_name.lower():
-                fits_for_this_objective = [ffunc(y, individual.node_count) for individual in self.population]
-            else:
-                fits_for_this_objective = [ffunc(y, y_pred_ind) for y_pred_ind in y_preds]
+            func_name_lower = func_name.lower()
+            
+            if "size" in func_name_lower:
+                fits = [ffunc(y, ind.node_count) for ind in self.population]
+            
+            elif any(k in func_name_lower for k in  ["nao", "naoc", "features"]):
+                # Pass the individual itself for structure-based metrics
+                fits = [ffunc(y, ind.repr_) for ind in self.population]
+            
+            else: #metrics that use semantics (RMSE,...)
+                fits = [ffunc(y, pred) for pred in y_preds]
 
-            fits_per_objective.append(torch.tensor(fits_for_this_objective))
+            fits_per_objective.append(torch.tensor(fits))
         
         fitness_matrix = torch.stack(fits_per_objective).T
         

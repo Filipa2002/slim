@@ -351,10 +351,11 @@ class MOGP(GP):
         # 1st: formatting the required strings
 
         if self.elite is not None:
-            # Elite Fitness (1D vector : [obj1, obj2, ...])
-            elite_fit_str = " ".join([f"{f:.6f}" for f in self.elite.fitness.tolist()])
+            # Elite Fitness (1D vector : [obj1| obj2! ...])
+            elite_fit_str = "|".join([f"{f:.6f}" for f in self.elite.fitness.tolist()])
+            
             if self.elite.test_fitness is not None:
-                elite_test_fit_str = " ".join([f"{f:.6f}" for f in self.elite.test_fitness.tolist()])
+                elite_test_fit_str = "|".join([f"{f:.6f}" for f in self.elite.test_fitness.tolist()])
             else:
                 elite_test_fit_str = "N/A"
             elite_nodes = self.elite.node_count
@@ -369,7 +370,8 @@ class MOGP(GP):
         else:
             fits = [ind.fitness for ind in population.population]
             pop_fit_numpy = torch.stack(fits).numpy()
-        pop_fit_str = " ".join([f"{f:.6f}" for f in pop_fit_numpy.flatten().tolist()])
+        
+        pop_fit_str = "|".join([f"{f:.6f}" for f in pop_fit_numpy.flatten().tolist()])
 
         # 2nd: adapting add_info 
         if log == 2:
@@ -398,13 +400,23 @@ class MOGP(GP):
                 pop_fit_str,
                 log,
             ]
+        elif log == 5:
+            # Standard Deviation of Training RMSE across all individuals
+            std_train_rmse = np.std(pop_fit_numpy[:, 0])
+
+            add_info = [
+                elite_test_fit_str, #RMSE|Size|...
+                elite_nodes,
+                f"{std_train_rmse:.6f}",
+                log
+            ]
         else:
             add_info = [elite_test_fit_str, elite_nodes, log]
 
         logger(
             log_path,
             generation,
-            elite_fit_str, # Passes the formatted string
+            elite_fit_str, #with | between objectives
             elapsed_time,
             float(population.nodes_count),
             additional_infos=add_info,

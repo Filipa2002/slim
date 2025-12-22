@@ -53,6 +53,57 @@ def protected_div(x1, x2):
         torch.tensor(1.0, dtype=x2.dtype, device=x2.device),
     )
 
+############################################################################
+#                                                                          #
+# Created by me: protected_mod, protected_pow                              #
+#                                                                          #
+############################################################################
+def protected_mod(x1, x2):
+    """
+    Implements the modulo protected against zero denominator
+
+    Performs modulo operation between x1 and x2. If x2 is (or has) zero(s), the
+    function returns 0.
+    
+    Parameters
+    ----------
+    x1 : torch.Tensor
+        The dividend.
+    x2 : torch.Tensor
+        The divisor.
+    
+    Returns
+    -------
+    torch.Tensor
+        Result of protected modulo between x1 and x2.
+    """
+    return torch.where(
+        torch.abs(x2) > 0.001,
+        torch.remainder(x1, x2),
+        torch.tensor(0.0, dtype=x2.dtype, device=x2.device)
+    )
+
+def protected_pow(x1, x2):
+    """
+    Implements the power function protected against negative bases with fractional exponents
+
+    Performs exponentiation of x1 raised to the power of x2. If x1 is negative and x2 is fractional,
+    the function returns the absolute value of x1 raised to the power of x2.
+
+    Parameters
+    ----------
+    x1 : torch.Tensor
+        The base.
+    x2 : torch.Tensor
+        The exponent.
+    
+    Returns
+    -------
+    torch.Tensor
+        Result of protected exponentiation of x1 raised to the power of x2.
+    """
+    return torch.pow(torch.abs(x1), x2)
+
 
 def mean_(x1, x2):
     """
@@ -254,8 +305,6 @@ def verbose_reporter(
 ############################################################################
 #                                                                          #
 # Created by me                                                            #
-#                                                                          #
-#                                                                          #
 #                                                                          #
 ############################################################################
 def mo_verbose_reporter(
@@ -497,55 +546,6 @@ def find_mo_elites_ideal_candidate(population, n_elites, minimization_flags, ide
     
     elite = elites[0] if elites else None
     
-    return elites, elite
-######################
-
-def find_mo_elites_default(population, n_elites, minimization_flags, use_first_obj=False, fronts=None):
-    if not population.population:
-        return [], None
-    
-    if use_first_obj:
-        # First-objective logic (Mantém-se igual para o Cenário 4)
-        obj_index = 0
-        is_min = minimization_flags[obj_index]
-        
-        if is_min:
-            best_ind = min(population.population, key=lambda ind: ind.fitness[obj_index])
-        else:
-            best_ind = max(population.population, key=lambda ind: ind.fitness[obj_index])
-            
-        elites = [best_ind] * n_elites
-        elite = best_ind
-        
-    else:
-        # NSGA-II logic (Atualizada para Multi-Frente)
-        if fronts is None:
-            fronts = population.non_dominated_sorting(minimization_flags)
-
-        elites = []
-        
-        # Iterar pelas frentes (0, 1, 2...) até ter elites suficientes
-        for front in fronts:
-            if len(elites) >= n_elites:
-                break
-                
-            # Calcular Crowding Distance se necessário (para desempatar dentro da frente)
-            if len(front) > 0:
-                if front[0].crowding_distance is None:
-                    population.calculate_crowding_distance(front)
-                
-                # Ordenar por CD decrescente (maior diversidade é melhor)
-                front.sort(key=lambda ind: ind.crowding_distance, reverse=True)
-            
-            # Calcular quantos faltam para encher o pedido
-            missing = n_elites - len(elites)
-            
-            # Adicionar os melhores desta frente
-            elites.extend(front[:missing])
-
-        # O "Melhor Elite" é sempre o primeiro da lista (Frente 0, Maior CD)
-        elite = elites[0] if elites else None  
-            
     return elites, elite
 
 
@@ -790,6 +790,145 @@ def gs_size(y_true, y_pred):
 
     return y_pred[1]
 
+#######################################################################
+#     Created by me                                                   #
+#                                                                     #
+#######################################################################
+ARITHMETIC_OPS = {'add', 'subtract', 'multiply', 'divide'} 
+
+def _traverse_count_nao(tree_repr):
+    """
+    Recursive helper to count Non-Arithmetic Operators.
+
+    Parameters
+    ----------
+    tree_repr : tuple or str
+        The tree representation.
+    
+    Returns
+    -------
+    int
+        Count of non-arithmetic operators in the tree.
+    """
+    if isinstance(tree_repr, str):
+        return 0 # Terminal or Constant node
+    op = tree_repr[0]
+    # Check if current op is non-arithmetic
+    count = 1 if op not in ARITHMETIC_OPS else 0
+    
+    # Sum counts from children nodes
+    for child in tree_repr[1:]:
+        count += _traverse_count_nao(child)
+    return count
+
+def _traverse_count_naoc(tree_repr, parent_is_nao=False):
+    """
+    Recursive helper to count Consecutive Non-Arithmetic Operators.
+    
+    Parameters
+    ----------
+    tree_repr : tuple or str
+        The tree representation.
+    parent_is_nao : bool
+        Flag indicating if the parent node is a non-arithmetic operator.
+    
+    Returns
+    -------
+    int
+        Count of consecutive non-arithmetic operators in the tree.
+    """
+    if isinstance(tree_repr, str):
+        return 0 # Terminal or Constant node
+    op = tree_repr[0]
+    is_nao = op not in ARITHMETIC_OPS
+    
+    # Count if current is NAO and Parent node was NAO
+    count = 1 if (is_nao and parent_is_nao) else 0
+    
+    for child in tree_repr[1:]:
+        count += _traverse_count_naoc(child, parent_is_nao=is_nao)
+    return count
+
+def _traverse_get_features(tree_repr, feature_set):
+    """
+    Recursive helper to collect unique features (terminals starting with 'x').
+    
+    Parameters
+    ----------
+    tree_repr : tuple or str
+        The tree representation.
+    feature_set : set
+        Set to collect unique features.
+
+    Returns
+    -------
+    None
+        Populates feature_set with unique features found in the tree.
+    """
+    if isinstance(tree_repr, str):
+        if tree_repr.startswith('x'):
+            feature_set.add(tree_repr)
+        return
+
+    for child in tree_repr[1:]:
+        _traverse_get_features(child, feature_set)
+
+
+# Wrapper Functions for fitness_function_options
+def num_nao(y_true, ind_repr):
+    """Calculates number of non-arithmetic operators.
+    
+    Parameters
+    ----------
+    y_true : array-like
+        True values. It is ignored in this function.
+    ind_repr : tuple
+        The tree representation.
+    
+    Returns
+    -------
+    float
+        The number of non-arithmetic operators in the tree.    
+    """
+    return float(_traverse_count_nao(ind_repr)) #It's conceptually an integer, but it must be implemented as a float so it can coexist with for exaple RMSE inside the same Tensor.
+
+def num_consecutive_nao(y_true, ind_repr):
+    """
+    Calculates number of consecutive non-arithmetic operators.
+    
+    Parameters
+    ----------
+    y_true : array-like
+        True values. It is ignored in this function.
+    ind_repr : tuple
+        The tree representation.
+
+    Returns
+    -------
+    float
+        The number of consecutive non-arithmetic operators in the tree.
+    """
+    return float(_traverse_count_naoc(ind_repr)) #It's conceptually an integer, but it must be implemented as a float so it can coexist with for exaple RMSE inside the same Tensor.
+
+def num_features(y_true, ind_repr):
+    """
+    Calculates number of unique features used.
+
+    Parameters
+    ----------
+    y_true : array-like
+        True values. It is ignored in this function.
+    ind_repr : tuple
+        The tree representation.
+
+    Returns
+    -------
+    float
+        The number of unique features used in the tree.
+    """
+    f_set = set()
+    _traverse_get_features(ind_repr, f_set)
+    return float(len(f_set))
 ############################################################################
 #                                                                          #
 # Created by me                                                            #
