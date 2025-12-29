@@ -29,6 +29,7 @@ class MOGP(GP):
         minimization_flags: list,
         find_mo_elit_func: callable,
         survival_strategy: callable,
+        elitism_strategy: str = "nsga2",
         **kwargs
     ):
         """
@@ -50,10 +51,44 @@ class MOGP(GP):
         self.minimization_flags = minimization_flags
         self.find_mo_elit_func = find_mo_elit_func
         self.survival_strategy = survival_strategy
+        self.elitism_strategy = elitism_strategy
+        self.best_ideal_point = None # to track the best ideal point found (ideal candidate elitism)
         
         MultiObjectiveTree.FUNCTIONS = self.pi_init["FUNCTIONS"]
         MultiObjectiveTree.TERMINALS = self.pi_init["TERMINALS"]
         MultiObjectiveTree.CONSTANTS = self.pi_init["CONSTANTS"]
+
+        
+    def _update_dynamic_ideal_point(self, population):
+        """
+        Update the best ideal point found so far based on the current population.
+
+        Parameters
+        ----------
+        population : MultiObjectivePopulation
+            The current population of individuals.
+            
+        Returns
+        -------
+        None
+        """
+        from slim_gsgp.utils.utils import get_current_ideal_point
+        
+        current_gen_ideal = get_current_ideal_point(population, self.minimization_flags)
+        if current_gen_ideal is None: return
+
+        if self.best_ideal_point is None:
+            self.best_ideal_point = current_gen_ideal
+        else:
+            # Compares and updates the best historical ideal point
+            new_ideal = []
+            for i, is_min in enumerate(self.minimization_flags):
+                if is_min:
+                    new_ideal.append(min(self.best_ideal_point[i], current_gen_ideal[i]))
+                else:
+                    new_ideal.append(max(self.best_ideal_point[i], current_gen_ideal[i]))
+            self.best_ideal_point = np.array(new_ideal)
+        
 
     def solve(
         self,
@@ -132,18 +167,32 @@ class MOGP(GP):
         # evaluating the intial population
         population.evaluate(fitness_functions=ffunction, X=X_train, y=y_train, n_jobs=n_jobs)
         
+        #updating ideal point if using ideal candidate elitism
+        if self.elitism_strategy == "ideal_point":
+            self._update_dynamic_ideal_point(population)
+
         # getting the non-dominated fronts of the initial population
         fronts = population.non_dominated_sorting(self.minimization_flags)
             
         end = time.time()
 
         # getting the elite(s) from the initial population
-        n_elites_to_log = max(1, n_elites)
-        self.elites, self.elite = self.find_mo_elit_func(population, n_elites_to_log, self.minimization_flags, fronts=fronts)
-
+        self.elites, self.elite = self.find_mo_elit_func(
+            population, max(1, n_elites), self.minimization_flags
+        )
+        
+        ###################Created by me: just for our experiments
+        rmse_elite = min(population.population, key=lambda ind: ind.fitness[0])
+        ###################
+        
+            
         # testing the elite on testing data, if applicable
         if test_elite:
             self.elite.evaluate(fitness_functions=ffunction, X=X_test, y=y_test, testing=True)
+            if rmse_elite != self.elite:
+                rmse_elite.evaluate(fitness_functions=ffunction, X=X_test, y=y_test, testing=True)
+            else:
+                rmse_elite.test_fitness = self.elite.test_fitness
         
         # logging the results if the log level is not 0
         if log != 0:
@@ -186,18 +235,28 @@ class MOGP(GP):
 
             end = time.time()
 
-            current_fronts = population.non_dominated_sorting(self.minimization_flags)
+            # updating ideal point if using ideal candidate elitism
+            if self.elitism_strategy == "ideal_point":
+                self._update_dynamic_ideal_point(population)
 
-            self.elites, self.elite = self.find_mo_elit_func(population, n_elites_to_log, self.minimization_flags, fronts=current_fronts)
+            population.non_dominated_sorting(self.minimization_flags)
+            self.elites, self.elite = self.find_mo_elit_func(population, max(1, n_elites), self.minimization_flags)
 
-            # testing the elite on testing data, if applicable
+            ###################Created by me: just for our experiments
+            rmse_elite = min(population.population, key=lambda ind: ind.fitness[0])
+            ###################
+
             if test_elite:
                 self.elite.evaluate(fitness_functions=ffunction, X=X_test, y=y_test, testing=True)
-            
+                if rmse_elite != self.elite:
+                    rmse_elite.evaluate(fitness_functions=ffunction, X=X_test, y=y_test, testing=True)
+                else:
+                    rmse_elite.test_fitness = self.elite.test_fitness
+
             # logging the results if log != 0
             if log != 0:
                 self.log_generation(
-                    it, population, end - start, log, log_path, run_info
+                    it, population, end - start, log, log_path, run_info, secondary_elite=rmse_elite
                 )
 
             # displaying the results on console if verbose != 0    
@@ -210,7 +269,77 @@ class MOGP(GP):
                     end - start, 
                     self.elite.node_count,
                 )
+
+
+    
+    def log_generation(
+        self, generation, population, elapsed_time, log, log_path, run_info, secondary_elite=None
+    ):
+        """
+        Log the results for the current generation (adapted for Multi-Objective data).
+        
+        Args:
+            generation (int): Current generation (iteration) number.
+            population (MultiObjectivePopulation): Current population.
+            elapsed_time (float): Time taken for the process.
+            log (int): Logging level.
+            log_path (str): Path to save logs.
+            run_info (list): Information about the current run.
+            secondary_elite (Individual, optional): Secondary elite individual for logging.
+
+        Returns:
+            None
+        """        
+        
+        # A. Formart the Main Elite (ex: rank)
+        if self.elite is not None:
+            main_test_str = "|".join([f"{f:.6f}" for f in self.elite.test_fitness.tolist()]) if self.elite.test_fitness is not None else "N/A"  # Ex: "5.2|10.0|3.0"
+            main_nodes = self.elite.node_count
+        else:
+            main_test_str = "N/A"; main_nodes = 0
+
+        # B. Format the RMSE Elite
+        if secondary_elite is not None:
+            sec_test_str = "|".join([f"{f:.6f}" for f in secondary_elite.test_fitness.tolist()]) if secondary_elite.test_fitness is not None else "N/A"
+            sec_nodes = secondary_elite.node_count
+        else:
+            sec_test_str = main_test_str
+            sec_nodes = main_nodes
+
+        # C. Population standard deviation
+        if population.fit is not None: pop_np = population.fit.numpy()
+        else: pop_np = torch.stack([ind.fitness for ind in population.population]).numpy()
+        std_train_rmse = np.std(pop_np[:, 0])
+
+        # for ideal point logging
+        if self.best_ideal_point is not None:
+            ideal_str = "|".join([f"{val:.6f}" for val in self.best_ideal_point])
+        else:
+            ideal_str = "N/A"
+
+        if log == 5:
+            # default logger: [Gen, Time, Main_Train_Fit, Main_Nodes]
+            # and then add:
+            add_info = [
+                main_test_str,    # Main Elite Test (for all objectives)
                 
+                sec_test_str,     # RMSE Elite Test (for all objectives)
+                sec_nodes,        # RMSE Elite Size          
+                f"{std_train_rmse:.6f}", # StdDev
+                ideal_str,        # Ideal Point
+                log
+            ]
+        else:
+            add_info = [main_test_str, main_nodes, log]
+
+        main_train_str = "|".join([f"{f:.6f}" for f in self.elite.fitness.tolist()]) if self.elite else "N/A"
+
+        logger(
+            log_path, generation, main_train_str, elapsed_time, float(main_nodes),
+            additional_infos=add_info, run_info=run_info, seed=self.seed,
+        )
+
+
     def evolve_population(
         self,
         population,
@@ -329,97 +458,3 @@ class MOGP(GP):
         
         # retuning the offspring population and the time control variable
         return offs_pop, start
-
-
-    def log_generation(
-        self, generation, population, elapsed_time, log, log_path, run_info
-    ):
-        """
-        Log the results for the current generation (adapted for Multi-Objective data).
-        
-        Args:
-            generation (int): Current generation (iteration) number.
-            population (MultiObjectivePopulation): Current population.
-            elapsed_time (float): Time taken for the process.
-            log (int): Logging level.
-            log_path (str): Path to save logs.
-            run_info (list): Information about the current run.
-
-        Returns:
-            None
-        """
-        # 1st: formatting the required strings
-
-        if self.elite is not None:
-            # Elite Fitness (1D vector : [obj1| obj2! ...])
-            elite_fit_str = "|".join([f"{f:.6f}" for f in self.elite.fitness.tolist()])
-            
-            if self.elite.test_fitness is not None:
-                elite_test_fit_str = "|".join([f"{f:.6f}" for f in self.elite.test_fitness.tolist()])
-            else:
-                elite_test_fit_str = "N/A"
-            elite_nodes = self.elite.node_count
-        else:
-            elite_fit_str = "N/A"
-            elite_test_fit_str = "N/A"
-            elite_nodes = 0 
-
-        # Population Fit (2D matrix: [individuals x objectives]). Flattened into a single string.
-        if population.fit is not None:
-            pop_fit_numpy = population.fit.numpy()
-        else:
-            fits = [ind.fitness for ind in population.population]
-            pop_fit_numpy = torch.stack(fits).numpy()
-        
-        pop_fit_str = "|".join([f"{f:.6f}" for f in pop_fit_numpy.flatten().tolist()])
-
-        # 2nd: adapting add_info 
-        if log == 2:
-            add_info = [
-                elite_test_fit_str,
-                elite_nodes,
-                float(niche_entropy([ind.repr_ for ind in population.population])),
-                np.mean(np.std(pop_fit_numpy, axis=0)), # Average standard deviation per objective
-                log,
-            ]
-        elif log == 3:
-            add_info = [
-                elite_test_fit_str,
-                elite_nodes,
-                " ".join([str(ind.node_count) for ind in population.population]),
-                pop_fit_str, # gives the fitness of all individuals
-                log,
-            ]
-        elif log == 4:
-            add_info = [
-                elite_test_fit_str,
-                elite_nodes,
-                float(niche_entropy([ind.repr_ for ind in population.population])),
-                np.mean(np.std(pop_fit_numpy, axis=0)),
-                " ".join([str(ind.node_count) for ind in population.population]),
-                pop_fit_str,
-                log,
-            ]
-        elif log == 5:
-            # Standard Deviation of Training RMSE across all individuals
-            std_train_rmse = np.std(pop_fit_numpy[:, 0])
-
-            add_info = [
-                elite_test_fit_str, #RMSE|Size|...
-                elite_nodes,
-                f"{std_train_rmse:.6f}",
-                log
-            ]
-        else:
-            add_info = [elite_test_fit_str, elite_nodes, log]
-
-        logger(
-            log_path,
-            generation,
-            elite_fit_str, #with | between objectives
-            elapsed_time,
-            float(population.nodes_count),
-            additional_infos=add_info,
-            run_info=run_info,
-            seed=self.seed,
-        )

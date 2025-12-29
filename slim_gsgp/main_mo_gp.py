@@ -45,7 +45,7 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
           fitness_functions: list = mo_parameters["mo_fitness_functions"], 
           minimization_flags: list = mo_parameters["mo_minimization_flags"], 
           tournament_sizes: list = mo_parameters["mo_tournament_sizes"],
-          ideal_candidate_values: list | None = None,
+          elitism_strategy: str = "nsga2",
     
           
           
@@ -103,8 +103,8 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
         A list of booleans indicating if each corresponding objective is for minimization (True) or maximization (False). (Default is from mo_parameters)
     tournament_sizes : list, optional
         A list of integers defining the tournament size for each objective during Nested Tournament Selection. (Default is from mo_parameters)
-    ideal_candidate_values : list, optional
-        A list of ideal candidate values for each objective to guide elite selection. If None, defaults uses first-objective logic.
+    elitism_strategy : str, optional
+        The elitism strategy to use. Options are "nsga2" (Rank+CD), "first_obj", "ideal_point".
     initializer : str, optional
         The strategy for initializing the population (e.g., "grow", "full", "rhh").
     n_jobs : int, optional
@@ -207,8 +207,7 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
    #  *************** GP_PARAMETERS ***************
     gp_parameters["p_xo"] = p_xo
     gp_parameters["p_m"] = 1 - gp_parameters["p_xo"]
-    gp_parameters["pop_size"] = pop_size
-    
+    gp_parameters["pop_size"] = pop_size    
 
 
     if selector_strategy == "nsga2": 
@@ -219,15 +218,73 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
             minimization_flags=minimization_flags
         )
 
-    if ideal_candidate_values is not None:
-        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None: \
-            find_mo_elites_ideal_candidate(pop, n, min_flags, ideal_candidate_values)          
-    elif survival_strategy == "generational" and n_elites > 0:
-        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None: \
-             find_mo_elites_default(pop, n, min_flags, use_first_obj=True, fronts=fronts)          
-    else:
-        gp_parameters["find_elit_func"] = find_mo_elites_default
+    
+    ####################APAGAR
+    # elitism_state = {"current_ideal": None}
+
+    # def stateful_ideal_wrapper(pop, n, min_flags, ideal_candidate_values=None, fronts=None):
+    #     """
+    #     Função inteligente que:
+    #     - Se receber um novo valor (do mogp.py), guarda-o.
+    #     - Se não receber valor (do survival), usa o guardado.
+    #     """
+    #     # Se o MOGP passar um valor novo, atualizamos a memória
+    #     if ideal_candidate_values is not None:
+    #         elitism_state["current_ideal"] = ideal_candidate_values
         
+    #     # Recuperamos o valor da memória se não for passado
+    #     val_to_use = ideal_candidate_values if ideal_candidate_values is not None else elitism_state["current_ideal"]
+        
+    #     if val_to_use is None:
+    #          raise ValueError("[CRITICAL] Ideal Point falhou! O Survival foi chamado sem haver um Ponto Ideal definido.")
+
+    #     return find_mo_elites_ideal_candidate(pop, n, min_flags, val_to_use)
+
+    # # 2. Atribuir a função correta ao dicionário de parâmetros
+    # if elitism_strategy == "ideal_point":
+    #     gp_parameters["find_elit_func"] = stateful_ideal_wrapper
+    
+
+
+    # if elitism_strategy == "ideal_point":
+    #     # We use a dictionary to maintain state between calls
+    #     # This way, when generational_survival calls the function without extra arguments,
+    #     # it uses the last known 'ideal'
+    #     elitism_state = {"last_ideal": None}
+        
+    #     def stateful_ideal_finder(pop, n, min_flags, ideal_candidate_values=None, fronts=None):
+    #         # If we receive a new value (from mogp.py), we update the memory
+    #         if ideal_candidate_values is not None:
+    #             elitism_state["last_ideal"] = ideal_candidate_values
+            
+    #         # If we do not receive (from survival), we use the memory
+    #         current_ideal = ideal_candidate_values if ideal_candidate_values is not None else elitism_state["last_ideal"]     
+            
+    #         if current_ideal is None:
+    #             raise ValueError(
+    #                 "[CRITICAL ERROR] Ideal Point Elitism: 'ideal_candidate_values' is None. "
+    #                 "This means that '_update_dynamic_ideal_point' did not run before selection."
+    #             )
+
+    #         return find_mo_elites_ideal_candidate(pop, n, min_flags, current_ideal)
+
+    #     gp_parameters["find_elit_func"] = find_mo_elites_ideal_candidate
+        
+    if elitism_strategy == "ideal_point":
+        gp_parameters["find_elit_func"] = find_mo_elites_ideal_candidate
+
+    elif elitism_strategy == "first_obj":
+        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None, ideal_candidate_values=None: \
+             find_mo_elites_default(pop, n, min_flags, use_first_obj=True, fronts=fronts)
+             
+    elif elitism_strategy == "nsga2": #Rank + Crowding Distance elitism
+        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None, ideal_candidate_values=None: \
+             find_mo_elites_default(pop, n, min_flags, use_first_obj=False, fronts=fronts)
+             
+    else:
+        raise ValueError(f"Unknown elitism_strategy '{elitism_strategy}'. Options are: 'nsga2', 'first_obj', 'ideal_point'.")
+
+
     if survival_strategy == "nsga2":
         algo = "MOGP_NSGAII"
         survival_op = nsga2_survival(minimization_flags)
@@ -242,10 +299,7 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
     else:
         raise ValueError(f"Invalid survival_strategy: '{survival_strategy}'. Use 'nsga2' or 'generational'.")
 
-
-
     
-
     gp_parameters["mutator"] = mutate_tree_subtree(
         gp_pi_init['init_depth'],  gp_pi_init["TERMINALS"], gp_pi_init['CONSTANTS'], gp_pi_init['FUNCTIONS'],
         p_c=gp_pi_init['p_c']
@@ -280,6 +334,7 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
         find_mo_elit_func=gp_parameters["find_elit_func"],
         survival_strategy=survival_op,
         pi_init=gp_pi_init, 
+        elitism_strategy=elitism_strategy,
         **gp_parameters
     )
 

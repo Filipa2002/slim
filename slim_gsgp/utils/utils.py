@@ -460,12 +460,87 @@ def get_best_max(population, n_elites):
 # Created by me                                                            #
 #                                                                          #
 # find_mo_elites_default function                                          #
-#                                                                          #
+# find_mo_elites_ideal_candidate
+# get_current_ideal_point 
+# calculate_normalized_distances                                                                        #
 ############################################################################
 
-def find_mo_elites_ideal_candidate(population, n_elites, minimization_flags, ideal_candidate_values: list):
+# helper function to find current ideal point
+def get_current_ideal_point(population, minimization_flags):
     """
-    Function to find MO elites based on the Euclidean Distance to an Ideal Point.
+    Returns the vector with the best value found for each objective in the current population.
+
+    Parameters
+    ----------
+    population : MultiObjectivePopulation
+        The population of individuals.
+    minimization_flags : list of bool
+        Minimization flags for each objective.
+    
+    Returns
+    -------
+    np.ndarray
+        The ideal point vector.
+    """
+    if population.fit is None:
+        return None
+
+    fits = population.fit
+    current_ideal = []
+
+    for i, is_min in enumerate(minimization_flags):
+        col = fits[:, i]
+        val = torch.min(col).item() if is_min else torch.max(col).item()
+        current_ideal.append(val)
+        
+    return np.array(current_ideal)
+
+#helper function to calculate distances
+def calculate_normalized_distances(population, ideal_point):
+    """
+    Normalizes the population (Min-Max) and calculates the Euclidean distance to the Ideal Point.
+
+    Parameters
+    ----------
+    population : MultiObjectivePopulation
+        The population of individuals.
+    ideal_point : list or np.ndarray
+        The ideal point vector.
+
+    Returns
+    -------
+    torch.Tensor
+        The distances of each individual to the ideal point.
+    """
+    if population.fit is None:
+        raise ValueError(
+            "[CRITICAL ERROR] Attempted to compute distances on a population without evaluated fitness. "
+            "Please check whether 'population.evaluate()' was called correctly before this."
+        )
+    
+    fits = population.fit
+    
+    t_min = fits.min(dim=0).values
+    t_max = fits.max(dim=0).values
+    
+    denom = t_max - t_min
+    denom[denom == 0] = 1.0  # avoid division by zero
+    
+    norm_fits = (fits - t_min) / denom
+    
+    # Normalize the Ideal Point (using the same scale as the population)
+    ideal_tensor = torch.tensor(ideal_point, device=fits.device, dtype=fits.dtype)
+    norm_ideal = (ideal_tensor - t_min) / denom
+    
+    # Euclidean Distance
+    distances = torch.linalg.norm(norm_fits - norm_ideal, axis=1)
+    
+    return distances
+
+
+def find_mo_elites_ideal_candidate(population, n_elites, minimization_flags, ideal_candidate_values=None):
+    """
+    Select MO elites based on distance to an Ideal Point.
 
     Parameters
     ----------
@@ -473,80 +548,50 @@ def find_mo_elites_ideal_candidate(population, n_elites, minimization_flags, ide
         The population of individuals.
     n_elites : int
         Number of elites to return.
-    minimization_flags : list of bool 
+    minimization_flags : list of bool
         Minimization flags for each objective.
-    ideal_candidate_values : list of float
-        The user-defined ideal values for each objective.
-
+    ideal_candidate_values : list of float, optional
+        The dynamic ideal values for each objective. If None, the current ideal point is used.
+    
     Returns
     -------
     list
         The list of elite individuals.
-    MultiObjectiveTree
-        Best elite individual.    
     """
-    
     if not population.population:
         return [], None
-    
-    if population.fit is None or len(population.fit) != len(population.population):
-        # Recalculate fitness matrix if not present or inconsistent
-        fits = [ind.fitness for ind in population.population]
-        # Ensure no None values before stacking
-        if any(f is None for f in fits):
-             raise ValueError("Some individuals in the population have not been evaluated (fitness is None).")
-        population.fit = torch.stack(fits)
         
-    num_objectives_pop = population.fit.shape[1]
-    num_objectives_ideal = len(ideal_candidate_values)
-    if num_objectives_ideal != num_objectives_pop:
-        raise ValueError(
-            f"Dimension mismatch: 'ideal_candidate_values' has {num_objectives_ideal} objectives, "
-            f"but the population fitness has {num_objectives_pop} objectives."
-        )
+    if population.fit is None:
+        first_ind = population.population[0]
+        if hasattr(first_ind, 'fitness') and first_ind.fitness is not None:
+            try:
+                #Reconstruct population.fit from individuals' fitness
+                fits_list = [ind.fitness for ind in population.population]
+                #if it is a list of tensors, stack them. If it is a list of arrays/floats, use tensor.
+                if isinstance(fits_list[0], torch.Tensor):
+                    population.fit = torch.stack(fits_list)
+                else:
+                    population.fit = torch.tensor(fits_list)
+                    
+            except Exception as e:
+                raise ValueError(f"[CRITICAL] Failed to reconstruct population.fit: {e}")
+        else:
+            raise ValueError("[CRITICAL] find_mo_elites called on a population where individuals do not have evaluated fitness.")
 
+    # if we don't have the ideal point, calculate it from the population
+    if ideal_candidate_values is None:
+        target_ideal = get_current_ideal_point(population, minimization_flags)
+    else:
+        target_ideal = ideal_candidate_values
+
+    # calculate distances to the ideal point
+    distances = calculate_normalized_distances(population, target_ideal)
     
-    dtype = population.fit.dtype
-    device = population.fit.device
-    ideal_point = torch.tensor(ideal_candidate_values, dtype=dtype, device=device)
+    # choose the N elites with smallest distances
+    best_indices = torch.argsort(distances)[:n_elites]
+    elites = [population.population[i] for i in best_indices]
     
-    fit_matrix = population.fit
-    
-    min_vals = fit_matrix.min(dim=0).values
-    max_vals = fit_matrix.max(dim=0).values
-    
-    ranges = max_vals - min_vals
-    non_zero_range_mask = ranges > 0
-    
-    # Initialize with zeros for constant objectives
-    normalized_fit = torch.zeros_like(fit_matrix, dtype=dtype, device=device)
-    normalized_ideal_point = torch.zeros_like(ideal_point, dtype=dtype, device=device)
-    
-    if non_zero_range_mask.any():
-        valid_indices = torch.where(non_zero_range_mask)[0]
-        valid_ranges = ranges[valid_indices]
-        valid_min_vals = min_vals[valid_indices]
-        
-        # Apply Min-Max normalization for valid objectives and ideal point
-        normalized_fit[:, valid_indices] = (
-            fit_matrix[:, valid_indices] - valid_min_vals
-        ) / valid_ranges
-        
-        normalized_ideal_point[valid_indices] = (
-            ideal_point[valid_indices] - valid_min_vals
-        ) / valid_ranges
-    
-    distances = torch.sqrt(torch.pow(normalized_fit - normalized_ideal_point, 2).sum(dim=1) )
-    
-    
-    sorted_indices = torch.argsort(distances)
-    
-    elites_indices = sorted_indices[:n_elites].tolist()
-    elites = [population.population[i] for i in elites_indices]
-    
-    elite = elites[0] if elites else None
-    
-    return elites, elite
+    return elites, elites[0]
 
 
 def find_mo_elites_default(population, n_elites, minimization_flags, use_first_obj=False, fronts=None):
@@ -607,7 +652,7 @@ def find_mo_elites_default(population, n_elites, minimization_flags, use_first_o
             
             # Calculate Crowding Distance if needed (to break ties within the front)
             if len(front) > 0:
-                if front[0].crowding_distance is None:
+                if any(ind.crowding_distance is None for ind in front):
                     population.calculate_crowding_distance(front)
                 
                 # Sort by descending Crowding Distance
@@ -785,10 +830,26 @@ def gs_size(y_true, y_pred):
     int
         The size of the predicted values.
     """
+    if isinstance(y_pred, (list, tuple)):    #APAGAR
+        if len(y_pred) > 1:
+            return y_pred[1]
+        else:
+             raise ValueError(f"gs_size received tuple with len {len(y_pred)}, expected > 1 for GSGP.")
+    
     if isinstance(y_pred, (int, float)):
-        return y_pred
+        return torch.tensor(y_pred)
+    
+    if isinstance(y_pred, torch.Tensor):
+        if y_pred.ndim == 0: # Scalar tensor (size)
+            return y_pred
+        else:
+            raise ValueError(
+                f"[CRITICAL ERROR] gs_size received a vector of predictions (shape {y_pred.shape}). "
+                "It expects a scalar value representing the tree size. "
+                "Check mo_tree.py implementation."
+            )
 
-    return y_pred[1]
+    raise TypeError(f"gs_size received unknown type: {type(y_pred)}")
 
 #######################################################################
 #     Created by me                                                   #
@@ -810,15 +871,21 @@ def _traverse_count_nao(tree_repr):
     int
         Count of non-arithmetic operators in the tree.
     """
+    if isinstance(tree_repr, torch.Tensor):
+        if tree_repr.ndim == 0: return 0 #scaler or constant node
+
     if isinstance(tree_repr, str):
         return 0 # Terminal or Constant node
-    op = tree_repr[0]
-    # Check if current op is non-arithmetic
-    count = 1 if op not in ARITHMETIC_OPS else 0
     
-    # Sum counts from children nodes
-    for child in tree_repr[1:]:
-        count += _traverse_count_nao(child)
+    if isinstance(tree_repr, (list, tuple)):
+        op = tree_repr[0]
+        # Check if current op is non-arithmetic
+        count = 1 if op not in ARITHMETIC_OPS else 0
+
+        if len(tree_repr) > 1:
+            # Sum counts from children nodes
+            for child in tree_repr[1:]:
+                count += _traverse_count_nao(child)
     return count
 
 def _traverse_count_naoc(tree_repr, parent_is_nao=False):
@@ -837,16 +904,22 @@ def _traverse_count_naoc(tree_repr, parent_is_nao=False):
     int
         Count of consecutive non-arithmetic operators in the tree.
     """
+    if isinstance(tree_repr, torch.Tensor):
+        if tree_repr.ndim == 0: return 0
+
     if isinstance(tree_repr, str):
         return 0 # Terminal or Constant node
-    op = tree_repr[0]
-    is_nao = op not in ARITHMETIC_OPS
     
-    # Count if current is NAO and Parent node was NAO
-    count = 1 if (is_nao and parent_is_nao) else 0
+    if isinstance(tree_repr, (list, tuple)):
+        op = tree_repr[0]
+        is_nao = op not in ARITHMETIC_OPS
     
-    for child in tree_repr[1:]:
-        count += _traverse_count_naoc(child, parent_is_nao=is_nao)
+        # Count if current is NAO and Parent node was NAO
+        count = 1 if (is_nao and parent_is_nao) else 0
+
+        if len(tree_repr) > 1:
+            for child in tree_repr[1:]:
+                count += _traverse_count_naoc(child, parent_is_nao=is_nao)
     return count
 
 def _traverse_get_features(tree_repr, feature_set):
@@ -865,18 +938,30 @@ def _traverse_get_features(tree_repr, feature_set):
     None
         Populates feature_set with unique features found in the tree.
     """
+    if isinstance(tree_repr, torch.Tensor):      #APAGAR
+        if tree_repr.ndim == 0: return
+        else:
+            raise ValueError(f"Found non-scalar Tensor in tree structure: shape {tree_repr.shape}")
+    
     if isinstance(tree_repr, str):
         if tree_repr.startswith('x'):
             feature_set.add(tree_repr)
         return
 
-    for child in tree_repr[1:]:
-        _traverse_get_features(child, feature_set)
+    if isinstance(tree_repr, (list, tuple)):
+        if len(tree_repr) == 0:
+            return
 
+        if len(tree_repr) > 1:
+            for child in tree_repr[1:]:
+                _traverse_get_features(child, feature_set)
+        return
+    raise TypeError(f"Unknown node type in tree traversal: {type(tree_repr)}")
 
 # Wrapper Functions for fitness_function_options
 def num_nao(y_true, ind_repr):
-    """Calculates number of non-arithmetic operators.
+    """
+    Calculates number of non-arithmetic operators.
     
     Parameters
     ----------
@@ -1103,7 +1188,7 @@ def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism,
     if not isinstance(log, int):
         raise TypeError("log_level must be an int")
 
-    assert 0 <= log <= 4, "log_level must be between 0 and 4"
+    assert 0 <= log <= 6, "log_level must be between 0 and 6"
 
     if not isinstance(verbose, int):
         raise TypeError("verbose level must be an int")
