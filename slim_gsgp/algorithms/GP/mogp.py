@@ -293,18 +293,19 @@ class MOGP(GP):
         
         # A. Formart the Main Elite (ex: rank)
         if self.elite is not None:
+            main_train_str = "|".join([f"{f:.6f}" for f in self.elite.fitness.tolist()]) if self.elite.fitness is not None else "N/A"
             main_test_str = "|".join([f"{f:.6f}" for f in self.elite.test_fitness.tolist()]) if self.elite.test_fitness is not None else "N/A"  # Ex: "5.2|10.0|3.0"
             main_nodes = self.elite.node_count
         else:
-            main_test_str = "N/A"; main_nodes = 0
+            main_train_str = "N/A"; main_test_str = "N/A"; main_nodes = 0
 
         # B. Format the RMSE Elite
         if secondary_elite is not None:
+            sec_train_str = "|".join([f"{f:.6f}" for f in secondary_elite.fitness.tolist()]) if secondary_elite.fitness is not None else "N/A"
             sec_test_str = "|".join([f"{f:.6f}" for f in secondary_elite.test_fitness.tolist()]) if secondary_elite.test_fitness is not None else "N/A"
             sec_nodes = secondary_elite.node_count
         else:
-            sec_test_str = main_test_str
-            sec_nodes = main_nodes
+            sec_train_str = "N/A"; sec_test_str = "N/A"; sec_nodes = 0
 
         # C. Population standard deviation
         if population.fit is not None: pop_np = population.fit.numpy()
@@ -323,6 +324,7 @@ class MOGP(GP):
             add_info = [
                 main_test_str,    # Main Elite Test (for all objectives)
                 
+                sec_train_str,    # RMSE Elite Train (for all objectives)
                 sec_test_str,     # RMSE Elite Test (for all objectives)
                 sec_nodes,        # RMSE Elite Size          
                 f"{std_train_rmse:.6f}", # StdDev
