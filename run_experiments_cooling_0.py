@@ -9,8 +9,9 @@ import torch
 from sklearn.model_selection import ShuffleSplit
 from slim_gsgp.main_mo_gp import mo_gp
 from slim_gsgp.datasets.data_loader import (
-     load_efficiency_cooling, load_ld50, 
-     load_boston
+     load_efficiency_cooling,
+     # load_ld50,
+     # load_boston
 )
 
 # Configuration
@@ -22,7 +23,7 @@ torch.manual_seed(RANDOM_SEED)
 # Datasets to Test (we need to import them first)
 DATASETS = {
     # 'Toxicity': load_ld50,
-    'Cooling': load_efficiency_cooling, 
+    'Cooling': load_efficiency_cooling,
     # 'Boston': load_boston
 }
 
@@ -168,8 +169,9 @@ for ds_name, loader_func in DATASETS.items():
     rs = ShuffleSplit(n_splits=N_SPLITS_MC, test_size=TEST_SIZE, random_state=RANDOM_SEED)
 
     for split_idx, (train_idx, test_idx) in enumerate(rs.split(X, y)):
-
-        if split_idx not in range(11, 20):
+        # TODO: if using for other datasets and splits, modify
+        # if split_idx not in range(0, ):
+        if split_idx not in [0, 5]:
             continue
             
         print(f"\n  > MC Split {split_idx+1}/{N_SPLITS_MC}")
