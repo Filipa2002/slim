@@ -1,0 +1,19 @@
+=== Stats: Boston (5_Objs) ===
+Scenario  NSGA-II_Pure  NT_1st_Obj_Elitism  NT_NSGA-II
+count        15.000000           15.000000   15.000000
+mean          6.819280            7.266681    7.532519
+std           0.765603            0.641431    0.536214
+min           5.433968            6.177087    6.626180
+25%           6.127358            6.766371    7.168654
+50%           7.087592            7.237909    7.558832
+75%           7.319335            7.712585    7.922858
+max           7.924863            8.380668    8.380668
+
+Friedman Test:
+Statistic: 12.5306, p-value: 0.001901
+
+Significant differences found. Nemenyi Post-Hoc:
+                    NSGA-II_Pure  NT_1st_Obj_Elitism  NT_NSGA-II
+NSGA-II_Pure            1.000000            0.192350    0.003995
+NT_1st_Obj_Elitism      0.192350            1.000000    0.310054
+NT_NSGA-II              0.003995            0.310054    1.000000

@@ -1,0 +1,19 @@
+=== Stats: Toxicity (5_Objs) ===
+Scenario  NSGA-II_Pure  NT_1st_Obj_Elitism   NT_NSGA-II
+count         8.000000            8.000000     8.000000
+mean       2580.699432         2036.171143  2580.699432
+std         181.097558          137.432047   181.097558
+min        2250.988037         1788.536377  2250.988037
+25%        2512.080322         1975.877502  2512.080322
+50%        2584.781250         2054.286010  2584.781250
+75%        2669.074890         2109.104248  2669.074890
+max        2828.934326         2213.012695  2828.934326
+
+Friedman Test:
+Statistic: 16.0000, p-value: 0.000335
+
+Significant differences found. Nemenyi Post-Hoc:
+                    NSGA-II_Pure  NT_1st_Obj_Elitism  NT_NSGA-II
+NSGA-II_Pure            1.000000            0.007608    1.000000
+NT_1st_Obj_Elitism      0.007608            1.000000    0.007608
+NT_NSGA-II              1.000000            0.007608    1.000000
