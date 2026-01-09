@@ -34,14 +34,14 @@ OBJECTIVE_SETS = {
     #     'funcs': ["rmse", "size"],
     #     'flags': [True, True] # Min, Min
     # },
-    '3_Objs': {
-        'funcs': ["rmse", "size", "features"],
-        'flags': [True, True, True]
-    },
-    # '5_Objs': {
-    #     'funcs': ["rmse", "size", "features", "nao", "naoc"],
-    #     'flags': [True, True, True, True, True]
-    # }
+    # '3_Objs': {
+    #     'funcs': ["rmse", "size", "features"],
+    #     'flags': [True, True, True]
+    # },
+    '5_Objs': {
+        'funcs': ["rmse", "size", "features", "nao", "naoc"],
+        'flags': [True, True, True, True, True]
+    }
 }
 
 SCENARIOS = {
@@ -56,27 +56,19 @@ SCENARIOS = {
         'survival': 'nsga2',
         'n_elites': 0,
         'elitism_strategy': 'nsga2'
-    }
+    },
     # 'NT_No_Elitism': {
     #     'selector': 'nested_tournament',
     #     'survival': 'generational',
     #     'n_elites': 0,
     #     'elitism_strategy': 'nsga2'
     # },
-
-
-
-    # 'NT_1st_Obj_Elitism': {
-    #     'selector': 'nested_tournament',
-    #     'survival': 'generational',
-    #     'n_elites': 1,
-    #     'elitism_strategy': 'first_obj' #uses RMSE
-    # },
-
-
-
-
-
+    'NT_1st_Obj_Elitism': {
+        'selector': 'nested_tournament',
+        'survival': 'generational',
+        'n_elites': 1,
+        'elitism_strategy': 'first_obj' #uses RMSE
+    },
     # 'NT_Rank_CD_Elitism': {
     #     'selector': 'nested_tournament',
     #     'survival': 'generational',
