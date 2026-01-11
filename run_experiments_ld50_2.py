@@ -171,7 +171,7 @@ for ds_name, loader_func in DATASETS.items():
     for split_idx, (train_idx, test_idx) in enumerate(rs.split(X, y)):
         # TODO: if using for other datasets and splits, modify
         # if split_idx not in range(0, ):
-        if split_idx not in [4, 8]:
+        if split_idx not in [14, 15]:
             continue
             
         print(f"\n  > MC Split {split_idx+1}/{N_SPLITS_MC}")
