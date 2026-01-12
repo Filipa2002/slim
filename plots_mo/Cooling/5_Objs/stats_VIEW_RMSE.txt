@@ -1,0 +1,19 @@
+=== Stats: Cooling (5_Objs) ===
+Scenario  NSGA-II_Pure  NT_1st_Obj_Elitism  NT_NSGA-II
+count        17.000000           17.000000   17.000000
+mean          4.319850            4.503888    4.577281
+std           0.328190            0.134360    0.218063
+min           3.797387            4.165271    4.169027
+25%           4.020241            4.424264    4.457140
+50%           4.395564            4.516559    4.543911
+75%           4.560205            4.578410    4.681741
+max           4.892997            4.688949    4.943788
+
+Friedman Test:
+Statistic: 11.1707, p-value: 0.003752
+
+Significant differences found. Nemenyi Post-Hoc:
+                    NSGA-II_Pure  NT_1st_Obj_Elitism  NT_NSGA-II
+NSGA-II_Pure            1.000000            0.142560    0.034448
+NT_1st_Obj_Elitism      0.142560            1.000000    0.819968
+NT_NSGA-II              0.034448            0.819968    1.000000
