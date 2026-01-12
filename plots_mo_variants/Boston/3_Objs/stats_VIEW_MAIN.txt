@@ -1,0 +1,20 @@
+=== Stats: Boston (3_Objs) ===
+Scenario  NT_1st_Obj_Elitism  NT_Ideal_Cand_Elitism  NT_No_Elitism  NT_Rank_CD_Elitism
+count              15.000000              15.000000      15.000000           15.000000
+mean                7.448195               9.446570      10.388515            9.669598
+std                 0.778157               0.642757       0.815854            0.851764
+min                 6.177087               8.526348       8.565610            8.526348
+25%                 6.900216               9.013583       9.881308            9.013583
+50%                 7.377818               9.279193      10.455844            9.686531
+75%                 7.943436               9.823086      10.881204           10.332794
+max                 8.822909              10.759686      11.942894           11.293148
+
+Friedman Test:
+Statistic: 42.6000, p-value: 0.000000
+
+Significant differences found. Nemenyi Post-Hoc:
+                       NT_1st_Obj_Elitism  NT_Ideal_Cand_Elitism  NT_No_Elitism  NT_Rank_CD_Elitism
+NT_1st_Obj_Elitism           1.000000e+00               0.015772   4.593065e-09            0.001766
+NT_Ideal_Cand_Elitism        1.577216e-02               1.000000   7.975138e-03            0.920273
+NT_No_Elitism                4.593065e-09               0.007975   1.000000e+00            0.053195
+NT_Rank_CD_Elitism           1.766047e-03               0.920273   5.319458e-02            1.000000

@@ -1,0 +1,20 @@
+=== Stats: Toxicity (5_Objs) ===
+Scenario  NT_1st_Obj_Elitism  NT_Ideal_Cand_Elitism  NT_No_Elitism  NT_Rank_CD_Elitism
+count              10.000000              10.000000      10.000000           10.000000
+mean             1975.995349            2491.670044    2491.670044         2491.670044
+std               179.144073             248.642792     248.642792          248.642792
+min              1658.560913            2065.604004    2065.604004         2065.604004
+25%              1839.220856            2302.490845    2302.490845         2302.490845
+50%              2011.717712            2547.212280    2547.212280         2547.212280
+75%              2084.422608            2626.755493    2626.755493         2626.755493
+max              2213.012695            2828.934326    2828.934326         2828.934326
+
+Friedman Test:
+Statistic: 30.0000, p-value: 0.000001
+
+Significant differences found. Nemenyi Post-Hoc:
+                       NT_1st_Obj_Elitism  NT_Ideal_Cand_Elitism  NT_No_Elitism  NT_Rank_CD_Elitism
+NT_1st_Obj_Elitism               1.000000               0.002989       0.002989            0.002989
+NT_Ideal_Cand_Elitism            0.002989               1.000000       1.000000            1.000000
+NT_No_Elitism                    0.002989               1.000000       1.000000            1.000000
+NT_Rank_CD_Elitism               0.002989               1.000000       1.000000            1.000000
