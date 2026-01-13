@@ -1,0 +1,10 @@
+=== Time Execution Stats: Cooling (5_Objs) ===
+Metric: Total Sum of seconds per Fold (sum of all generations)
+
+            Algorithm    Mean (s)  Median (s)     Std (s)  Sum (All Folds)     Min (s)      Max (s)
+         NSGA-II_Pure 5021.876778 3911.508830 4842.707765    100437.535553 2551.791559 25726.907859
+           NT_NSGA-II 6052.122943 4157.119916 4825.495221    121042.458853 2661.793935 25114.486332
+   NT_1st_Obj_Elitism  118.383938   18.646700  432.247520      2367.678750   13.513808  2002.429392
+   NT_Rank_CD_Elitism  998.290468  983.493863  134.474014     19965.809354  816.060686  1435.347900
+NT_Ideal_Cand_Elitism   17.953424   17.123340    2.577065       359.068473   14.894380    25.876418
+        NT_No_Elitism   16.669698   16.097065    2.063744       333.393967   13.207555    22.200610

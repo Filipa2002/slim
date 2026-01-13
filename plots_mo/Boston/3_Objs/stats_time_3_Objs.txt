@@ -1,0 +1,10 @@
+=== Time Execution Stats: Boston (3_Objs) ===
+Metric: Total Sum of seconds per Fold (sum of all generations)
+
+            Algorithm    Mean (s)  Median (s)    Std (s)  Sum (All Folds)     Min (s)     Max (s)
+         NSGA-II_Pure 2529.070966 2051.815800 893.750917     50581.419311 1576.784033 4690.433263
+           NT_NSGA-II 2348.794241 2165.738434 442.156756     46975.884825 1748.943285 3540.776588
+   NT_1st_Obj_Elitism    6.910307    6.602128   0.751078       138.206141    5.820389    9.149510
+   NT_Rank_CD_Elitism  689.383138  674.994183 134.547253     13787.662759  535.401654 1076.393812
+NT_Ideal_Cand_Elitism    7.084743    6.826966   1.219956       141.694854    5.763258   11.047462
+        NT_No_Elitism    6.806231    6.622138   1.275740       136.124618    5.418750   10.500229

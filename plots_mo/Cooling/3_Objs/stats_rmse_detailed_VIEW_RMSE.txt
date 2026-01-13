@@ -1,0 +1,11 @@
+=== Detailed RMSE Statistics: Cooling (3_Objs) - VIEW RMSE ===
+Metrics calculated on 'Test_RMSE' of the last generation across all folds.
+IQR = Q3 - Q1 | Lower = Q1 - 1.5*IQR | Upper = Q3 + 1.5*IQR
+
+            Algorithm     Mean   Median      IQR  Lower_Bound  Upper_Bound      Min      Max
+         NSGA-II_Pure 4.416635 4.366765 0.403405     3.610134     5.223754 3.737217 5.110411
+           NT_NSGA-II 4.534076 4.567729 0.256284     4.039671     5.064806 3.936680 4.943788
+   NT_1st_Obj_Elitism 4.522342 4.519571 0.201244     4.115223     4.920198 4.030739 4.943788
+   NT_Rank_CD_Elitism 9.131404 9.546032 0.394165     8.776465    10.353125 4.636782 9.904694
+NT_Ideal_Cand_Elitism 9.564919 9.546032 0.329314     8.938592    10.255849 9.036614 9.904694
+        NT_No_Elitism 8.795721 9.329892 1.728950     5.247015    12.162814 7.402953 9.833115

@@ -1,0 +1,11 @@
+=== Detailed RMSE Statistics: Boston (5_Objs) - VIEW RMSE ===
+Metrics calculated on 'Test_RMSE' of the last generation across all folds.
+IQR = Q3 - Q1 | Lower = Q1 - 1.5*IQR | Upper = Q3 + 1.5*IQR
+
+            Algorithm     Mean   Median      IQR  Lower_Bound  Upper_Bound      Min       Max
+         NSGA-II_Pure 6.876017 7.037553 1.300459     4.202667     9.404504 5.433968  8.302429
+           NT_NSGA-II 7.567590 7.603243 0.907338     5.739846     9.369198 6.626180  8.380668
+   NT_1st_Obj_Elitism 7.311216 7.218224 0.903441     5.534908     9.148673 6.177087  8.380668
+   NT_Rank_CD_Elitism 9.341368 9.242488 1.046938     7.341200    11.528951 7.104368 11.119503
+NT_Ideal_Cand_Elitism 8.984749 9.020943 1.731378     5.455576    12.381087 7.297300 10.759686
+        NT_No_Elitism 9.466843 9.516569 1.362385     6.686913    12.136455 7.619530 11.231877
