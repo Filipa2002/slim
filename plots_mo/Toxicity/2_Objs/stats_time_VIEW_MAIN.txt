@@ -1,0 +1,10 @@
+=== Time Execution Stats: Toxicity (2_Objs) ===
+Metric: Total Sum of seconds per Fold (sum of all generations)
+
+            Algorithm    Mean (s)  Median (s)     Std (s)  Sum (All Folds)
+         NSGA-II_Pure 1735.782568 1465.317222  728.042420     27772.521088
+           NT_NSGA-II 3565.470528 1574.789971 6775.689072     57047.528451
+   NT_1st_Obj_Elitism    7.936947    5.887268    4.723459       126.991148
+   NT_Rank_CD_Elitism  687.180313  584.493016  206.337877     10307.704689
+NT_Ideal_Cand_Elitism    8.574015    7.233998    2.265109       128.610221
+        NT_No_Elitism    8.270726    7.005900    2.166703       124.060890
