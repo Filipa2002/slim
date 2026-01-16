@@ -1,8 +1,8 @@
 === Detailed SIZE Stats: Boston (5_Objs) - VIEW RMSE ===
     Algorithm     Mean  Median  IQR  Lower_Bound  Upper_Bound  Min  Max
-      NSGA-II 7.461538     7.0  4.0         -1.0         15.0  5.0 17.0
-   NT_NSGA-II 6.615385     7.0  2.0          2.0         10.0  5.0 15.0
+      NSGA-II 7.444444     7.0  4.0         -1.0         15.0  5.0 17.0
+   NT_NSGA-II 6.555556     7.0  2.0          2.0         10.0  5.0 15.0
    NT_1st_Obj 7.000000     7.0  0.0          7.0          7.0  7.0  7.0
-        NT_CD 3.923077     3.0  0.0          3.0          3.0  3.0  7.0
-NT_Ideal_Cand 4.692308     3.0  4.0         -3.0         13.0  3.0  7.0
-        NT_NE 5.307692     7.0  4.0         -3.0         13.0  3.0 11.0
+        NT_CD 3.888889     3.0  0.0          3.0          3.0  3.0  7.0
+NT_Ideal_Cand 4.777778     3.0  4.0         -3.0         13.0  3.0  7.0
+        NT_NE 5.370370     7.0  4.0         -3.0         13.0  3.0 11.0

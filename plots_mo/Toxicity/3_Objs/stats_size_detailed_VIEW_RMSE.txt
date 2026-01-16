@@ -1,8 +1,8 @@
 === Detailed SIZE Stats: Toxicity (3_Objs) - VIEW RMSE ===
-    Algorithm  Mean  Median  IQR  Lower_Bound  Upper_Bound  Min  Max
-      NSGA-II  12.7    14.0  9.0         -7.0         29.0  5.0 21.0
-   NT_NSGA-II   5.0     5.0  0.0          5.0          5.0  5.0  5.0
-   NT_1st_Obj   7.3     7.0  0.0          7.0          7.0  5.0 15.0
-        NT_CD   4.2     3.0  4.0         -3.0         13.0  3.0  7.0
-NT_Ideal_Cand   3.6     3.0  0.0          3.0          3.0  3.0  7.0
-        NT_NE   7.0     7.0  0.0          7.0          7.0  7.0  7.0
+    Algorithm      Mean  Median  IQR  Lower_Bound  Upper_Bound  Min  Max
+      NSGA-II 12.555556    13.0 10.0         -9.0         31.0  5.0 21.0
+   NT_NSGA-II  5.000000     5.0  0.0          5.0          5.0  5.0  5.0
+   NT_1st_Obj  7.518519     7.0  0.0          7.0          7.0  5.0 15.0
+        NT_CD  4.037037     3.0  2.0          0.0          8.0  3.0  7.0
+NT_Ideal_Cand  3.444444     3.0  0.0          3.0          3.0  3.0  7.0
+        NT_NE  7.148148     7.0  0.0          7.0          7.0  7.0 11.0
