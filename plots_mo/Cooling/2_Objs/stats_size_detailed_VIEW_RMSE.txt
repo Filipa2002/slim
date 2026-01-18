@@ -1,8 +1,8 @@
 === Detailed SIZE Stats: Cooling (2_Objs) - VIEW RMSE ===
     Algorithm     Mean  Median  IQR  Lower_Bound  Upper_Bound  Min  Max
-      NSGA-II 8.407407     7.0  2.0          4.0         12.0  7.0 21.0
-   NT_NSGA-II 7.814815     7.0  2.0          4.0         12.0  5.0 13.0
-   NT_1st_Obj 5.296296     5.0  4.0         -3.0         13.0  3.0  9.0
+      NSGA-II 8.600000     7.0  2.0          4.0         12.0  7.0 21.0
+   NT_NSGA-II 7.666667     7.0  2.0          4.0         12.0  5.0 13.0
+   NT_1st_Obj 5.333333     5.0  4.0         -3.0         13.0  3.0  9.0
         NT_CD 3.000000     3.0  0.0          3.0          3.0  3.0  3.0
 NT_Ideal_Cand 3.000000     3.0  0.0          3.0          3.0  3.0  3.0
-        NT_NE 3.592593     3.0  0.0          3.0          3.0  3.0  7.0
+        NT_NE 3.533333     3.0  0.0          3.0          3.0  3.0  7.0
