@@ -96,16 +96,15 @@ class MultiObjectiveTree(Tree):
         torch.Tensor
             If exposed to new data, the fitness vector is returned.
         """
-        #APAGAR
-        # Se já tivermos fitness de treino e não for teste, não fazemos nada
+        # if we already have training fitness and it's not testing, do nothing
         if self.fitness is not None and not testing:
             return
 
-        # 1. Determinar que métricas precisam de dados (previsões)
-        # Convertemos para lower case para deteção robusta
+
+        # find which fitness functions are structural vs performance-based
         metric_names = [f.__name__.lower() if hasattr(f, '__name__') else str(f).lower() for f in fitness_functions]
         
-        # Lista de métricas que SABEMOS que não usam dados, mas sim a estrutura
+        #list of metrics that we know do not use data, but the structure
         structural_keywords = ['size', 'node', 'feature', 'depth', 'nao']
         
         preds = None
@@ -118,62 +117,52 @@ class MultiObjectiveTree(Tree):
             val = None
             
             if is_structural:
-                # --- LÓGICA ESTRUTURAL ---
-                # Aqui calculamos o valor correto para passar à função de fitness.
-                # A função 'gs_size' espera receber o tamanho, não as previsões.
+                # get the right value to pass to the fitness function
+                # 'gs_size' function expects (y, size), not (y, preds)
                 
                 if 'size' in fname or 'node' in fname:
-                    # Passamos o número de nós como "y_pred"
+                    # get the number of nodes as "y_pred"
                     val_input = float(self.node_count)
-                    # Chamamos a função (que vai só validar e retornar o valor)
                     val = ffunc(y, val_input)
                     
                 elif 'feature' in fname:
-                    # Temos de calcular as features aqui porque a função precisa da representação
-                    # Mas a assinatura padrão é f(y, pred). 
-                    # Opção A: A função num_features no utils aceita (y, tree_repr)
-                    # Opção B: Calculamos aqui e passamos o valor.
-                    
-                    # Vamos assumir que a função no utils espera (y, tree_repr) como vimos antes
-                    # ou (y, valor_calculado). Vamos pelo mais seguro:
-                    # Se usarmos os wrappers do utils.py (num_features), eles pedem ind_repr.
                     
                     if 'ind_repr' in ffunc.__code__.co_varnames: 
-                        # A função sabe lidar com a árvore
+                        # the function can handle the tree
                         val = ffunc(y, self.repr_)
                     else:
-                        # Fallback: Calculamos aqui e passamos o valor
+                        # Fallback: extract features ourselves
                         from slim_gsgp.utils.utils import _traverse_get_features
                         f_set = set()
                         _traverse_get_features(self.repr_, f_set)
                         val_input = float(len(f_set))
-                        val = val_input # Assumindo identidade
+                        val = val_input
                         
                 elif 'nao' in fname:
-                     # Mesmo princípio: se a função pedir ind_repr, passamos a árvore
+                     # if the function asks for ind_repr, we pass the tree
                      if 'ind_repr' in ffunc.__code__.co_varnames:
                          val = ffunc(y, self.repr_)
                      else:
                          raise ValueError(f"Function {fname} requires tree structure but signature unknown.")
                          
             else:
-                # --- LÓGICA DE PERFORMANCE (RMSE, MAE) ---
-                # Estas precisam de previsões reais
+                # --- PERFORMANCE LOGIC (RMSE, MAE) ---
+                # These require actual predictions
                 if preds is None:
                     preds = self.predict(X)
                     if isinstance(preds, torch.Tensor) and preds.requires_grad:
                         preds = preds.detach()
                 
-                # Chamada padrão: f(y_true, y_pred)
+                # Standard call: f(y_true, y_pred)
                 val = ffunc(y, preds)
             
-            # Verificação final de sanidade
+            # Final sanity check
             if val is None:
                 raise ValueError(f"Fitness function {fname} returned None.")
                 
             calculated_fitness.append(val)
 
-        # 3. Guardar Resultado
+        # get final tensor
         final_tensor = torch.tensor(calculated_fitness) if not isinstance(calculated_fitness, torch.Tensor) else torch.tensor(calculated_fitness)
         
         if testing:

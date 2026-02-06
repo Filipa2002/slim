@@ -217,58 +217,6 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
             tournament_sizes=tournament_sizes, 
             minimization_flags=minimization_flags
         )
-
-    
-    ####################APAGAR
-    # elitism_state = {"current_ideal": None}
-
-    # def stateful_ideal_wrapper(pop, n, min_flags, ideal_candidate_values=None, fronts=None):
-    #     """
-    #     Função inteligente que:
-    #     - Se receber um novo valor (do mogp.py), guarda-o.
-    #     - Se não receber valor (do survival), usa o guardado.
-    #     """
-    #     # Se o MOGP passar um valor novo, atualizamos a memória
-    #     if ideal_candidate_values is not None:
-    #         elitism_state["current_ideal"] = ideal_candidate_values
-        
-    #     # Recuperamos o valor da memória se não for passado
-    #     val_to_use = ideal_candidate_values if ideal_candidate_values is not None else elitism_state["current_ideal"]
-        
-    #     if val_to_use is None:
-    #          raise ValueError("[CRITICAL] Ideal Point falhou! O Survival foi chamado sem haver um Ponto Ideal definido.")
-
-    #     return find_mo_elites_ideal_candidate(pop, n, min_flags, val_to_use)
-
-    # # 2. Atribuir a função correta ao dicionário de parâmetros
-    # if elitism_strategy == "ideal_point":
-    #     gp_parameters["find_elit_func"] = stateful_ideal_wrapper
-    
-
-
-    # if elitism_strategy == "ideal_point":
-    #     # We use a dictionary to maintain state between calls
-    #     # This way, when generational_survival calls the function without extra arguments,
-    #     # it uses the last known 'ideal'
-    #     elitism_state = {"last_ideal": None}
-        
-    #     def stateful_ideal_finder(pop, n, min_flags, ideal_candidate_values=None, fronts=None):
-    #         # If we receive a new value (from mogp.py), we update the memory
-    #         if ideal_candidate_values is not None:
-    #             elitism_state["last_ideal"] = ideal_candidate_values
-            
-    #         # If we do not receive (from survival), we use the memory
-    #         current_ideal = ideal_candidate_values if ideal_candidate_values is not None else elitism_state["last_ideal"]     
-            
-    #         if current_ideal is None:
-    #             raise ValueError(
-    #                 "[CRITICAL ERROR] Ideal Point Elitism: 'ideal_candidate_values' is None. "
-    #                 "This means that '_update_dynamic_ideal_point' did not run before selection."
-    #             )
-
-    #         return find_mo_elites_ideal_candidate(pop, n, min_flags, current_ideal)
-
-    #     gp_parameters["find_elit_func"] = find_mo_elites_ideal_candidate
         
     if elitism_strategy == "ideal_point":
         gp_parameters["find_elit_func"] = find_mo_elites_ideal_candidate
