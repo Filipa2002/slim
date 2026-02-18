@@ -1272,3 +1272,39 @@ def _evaluate_slim_individual(individual, ffunction, y, testing=False, operator=
                     1000000000000.0,
                 ),
             )
+
+
+############################################################################
+#                                                                          #
+# Created by me: find unique elites                                        #
+#                                                                          #
+############################################################################
+def find_mo_elites_all_objectives(population, minimization_flags):
+    """
+    Selects the best individual for each objective separately.
+    Removes duplicates if the same individual is best at multiple objectives.
+    """
+    if not population.population:
+        return [], None
+
+    elites_set = set() #set (automatically handle duplicates)
+    
+    # Track the elite for the first objective specifically for logging return
+    primary_elite = None
+
+    for i, is_min in enumerate(minimization_flags):
+        # Find best for current objective index 'i'
+        if is_min:
+            best_ind_for_obj = min(population.population, key=lambda ind: ind.fitness[i])
+        else:
+            best_ind_for_obj = max(population.population, key=lambda ind: ind.fitness[i])
+        
+        elites_set.add(best_ind_for_obj)
+        
+        if i == 0:
+            primary_elite = best_ind_for_obj
+
+    # Convert set back to list
+    elites = list(elites_set)
+
+    return elites, primary_elite

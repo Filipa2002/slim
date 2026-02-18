@@ -170,10 +170,7 @@ class MOGP(GP):
         #updating ideal point if using ideal candidate elitism
         if self.elitism_strategy == "ideal_point":
             self._update_dynamic_ideal_point(population)
-
-        # getting the non-dominated fronts of the initial population
-        fronts = population.non_dominated_sorting(self.minimization_flags)
-            
+   
         end = time.time()
 
         # getting the elite(s) from the initial population
@@ -181,9 +178,11 @@ class MOGP(GP):
             population, max(1, n_elites), self.minimization_flags
         )
         
-        ###################Created by me: just for our experiments
+        # Count the number of unique elites
+        num_unique_elites = len(self.elites)
+
+        # Secondary Elite (RMSE)
         rmse_elite = min(population.population, key=lambda ind: ind.fitness[0])
-        ###################
         
             
         # testing the elite on testing data, if applicable
@@ -197,7 +196,7 @@ class MOGP(GP):
         # logging the results if the log level is not 0
         if log != 0:
             self.log_generation(
-                0, population, end - start, log, log_path, run_info
+                0, population, end - start, log, log_path, run_info, secondary_elite=rmse_elite, n_unique_elites=num_unique_elites
             )
         
         #displaying the results on console if verbose level is not 0
@@ -212,12 +211,21 @@ class MOGP(GP):
             )
 
         # EVOLUTIONARY PROCESS
-        if offspring_size is None:
-            n_offspring = self.pop_size
-        else:
-            n_offspring = offspring_size
+        
+        #no longer makes sense because of all_obj elitism
+        # if offspring_size is None:
+        #     n_offspring = self.pop_size
+        # else:
+        #     n_offspring = offspring_size
 
         for it in range(1, n_iter + 1):
+            
+            # finding the elite(s) of the current generation (before generating offsprings, for logging purposes)
+            current_gen_elites, _ = self.find_mo_elit_func(population, max(1, n_elites), self.minimization_flags)
+
+            # calculating how many offsprings we need to generate, considering the number of elites we want to keep
+            n_offspring_needed = max(0, self.pop_size - len(current_gen_elites))
+            
             # generate offsprings
             offs_pop, start = self.evolve_population(
                     population, 
@@ -227,7 +235,7 @@ class MOGP(GP):
                     X_train, 
                     y_train, 
                     n_jobs=n_jobs,
-                    offspring_size=n_offspring
+                    offspring_size=n_offspring_needed
                 )
             
             #Apply survival strategy
@@ -239,10 +247,11 @@ class MOGP(GP):
             if self.elitism_strategy == "ideal_point":
                 self._update_dynamic_ideal_point(population)
 
+            # finding the elite(s) of the current population after survival, to be used in logging and tracking
             population.non_dominated_sorting(self.minimization_flags)
             self.elites, self.elite = self.find_mo_elit_func(population, max(1, n_elites), self.minimization_flags)
-
             ###################Created by me: just for our experiments
+            num_unique_elites = len(self.elites)
             rmse_elite = min(population.population, key=lambda ind: ind.fitness[0])
             ###################
 
@@ -256,7 +265,7 @@ class MOGP(GP):
             # logging the results if log != 0
             if log != 0:
                 self.log_generation(
-                    it, population, end - start, log, log_path, run_info, secondary_elite=rmse_elite
+                    it, population, end - start, log, log_path, run_info, secondary_elite=rmse_elite, n_unique_elites=num_unique_elites
                 )
 
             # displaying the results on console if verbose != 0    
@@ -273,7 +282,7 @@ class MOGP(GP):
 
     
     def log_generation(
-        self, generation, population, elapsed_time, log, log_path, run_info, secondary_elite=None
+        self, generation, population, elapsed_time, log, log_path, run_info, secondary_elite=None, n_unique_elites=0
     ):
         """
         Log the results for the current generation (adapted for Multi-Objective data).
@@ -286,7 +295,7 @@ class MOGP(GP):
             log_path (str): Path to save logs.
             run_info (list): Information about the current run.
             secondary_elite (Individual, optional): Secondary elite individual for logging.
-
+            n_unique_elites (int): Number of unique elites in the current population.
         Returns:
             None
         """        
@@ -329,6 +338,7 @@ class MOGP(GP):
                 sec_nodes,        # RMSE Elite Size          
                 f"{std_train_rmse:.6f}", # StdDev
                 ideal_str,        # Ideal Point
+                n_unique_elites,  # Number of unique elites in the population
                 log
             ]
         else:

@@ -22,7 +22,7 @@ from slim_gsgp.config.gp_config import *
 from slim_gsgp.selection.selection_algorithms import nested_tournament_selection, tournament_selection_nsga2
 from slim_gsgp.selection.survival_strategies import nsga2_survival, generational_survival
 from slim_gsgp.utils.logger import log_settings
-from slim_gsgp.utils.utils import (get_terminals, validate_inputs, find_mo_elites_default, find_mo_elites_ideal_candidate) 
+from slim_gsgp.utils.utils import (get_terminals, validate_inputs, find_mo_elites_default, find_mo_elites_ideal_candidate, find_mo_elites_all_objectives) 
 
 def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = None, y_test: torch.Tensor = None,
           dataset_name: str = None,
@@ -217,20 +217,24 @@ def mo_gp(X_train: torch.Tensor, y_train: torch.Tensor, X_test: torch.Tensor = N
             tournament_sizes=tournament_sizes, 
             minimization_flags=minimization_flags
         )
-        
+
     if elitism_strategy == "ideal_point":
         gp_parameters["find_elit_func"] = find_mo_elites_ideal_candidate
 
     elif elitism_strategy == "first_obj":
         gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None, ideal_candidate_values=None: \
              find_mo_elites_default(pop, n, min_flags, use_first_obj=True, fronts=fronts)
-             
+
+    elif elitism_strategy == "all_objs":
+        gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None, ideal_candidate_values=None: \
+             find_mo_elites_all_objectives(pop, min_flags)
+
     elif elitism_strategy == "nsga2": #Rank + Crowding Distance elitism
         gp_parameters["find_elit_func"] = lambda pop, n, min_flags, fronts=None, ideal_candidate_values=None: \
              find_mo_elites_default(pop, n, min_flags, use_first_obj=False, fronts=fronts)
              
     else:
-        raise ValueError(f"Unknown elitism_strategy '{elitism_strategy}'. Options are: 'nsga2', 'first_obj', 'ideal_point'.")
+        raise ValueError(f"Unknown elitism_strategy '{elitism_strategy}'. Options: 'nsga2', 'first_obj', 'ideal_point', 'all_objs'.")
 
 
     if survival_strategy == "nsga2":
