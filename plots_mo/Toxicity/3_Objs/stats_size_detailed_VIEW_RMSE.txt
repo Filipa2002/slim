@@ -1,8 +1,34 @@
-=== Detailed SIZE Stats: Toxicity (3_Objs) - VIEW RMSE ===
-    Algorithm      Mean  Median  IQR  Lower_Bound  Upper_Bound  Min  Max
-      NSGA-II 12.666667    13.0 11.0        -11.0         33.0  5.0 25.0
-   NT_NSGA-II  5.000000     5.0  0.0          5.0          5.0  5.0  5.0
-   NT_1st_Obj  7.466667     7.0  0.0          7.0          7.0  5.0 15.0
-        NT_CD  3.933333     3.0  0.0          3.0          3.0  3.0  7.0
-NT_Ideal_Cand  3.400000     3.0  0.0          3.0          3.0  3.0  7.0
-        NT_NE  7.133333     7.0  0.0          7.0          7.0  7.0 11.0
+% LaTeX Stats for Test_Size | Toxicity | 3_Objs
+% Friedman p-value: 1.783198e-25
+
+\textbf{Descriptive Statistics}
+\begin{tabular}{lrrrrrrr}
+\toprule
+Scenario & NSGA-II & NT_1st_Obj & NT_All_Objs & NT_CD & NT_Ideal_Cand & NT_NE & NT_NSGA-II \\
+\midrule
+count & 30.00 & 30.00 & 30.00 & 30.00 & 30.00 & 30.00 & 30.00 \\
+mean & 12.67 & 7.47 & 7.27 & 3.93 & 3.40 & 7.13 & 5.00 \\
+std & 5.85 & 2.08 & 1.46 & 1.72 & 1.22 & 0.73 & 0.00 \\
+min & 5.00 & 5.00 & 7.00 & 3.00 & 3.00 & 7.00 & 5.00 \\
+25% & 5.50 & 7.00 & 7.00 & 3.00 & 3.00 & 7.00 & 5.00 \\
+50% & 13.00 & 7.00 & 7.00 & 3.00 & 3.00 & 7.00 & 5.00 \\
+75% & 16.50 & 7.00 & 7.00 & 3.00 & 3.00 & 7.00 & 5.00 \\
+max & 25.00 & 15.00 & 15.00 & 7.00 & 7.00 & 11.00 & 5.00 \\
+\bottomrule
+\end{tabular}
+
+
+\textbf{Nemenyi Post-Hoc p-values}
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & NSGA-II & NT_1st_Obj & NT_All_Objs & NT_CD & NT_Ideal_Cand & NT_NE & NT_NSGA-II \\
+\midrule
+NSGA-II & 1.0000 & 0.7662 & 0.7997 & 0.0000 & 0.0000 & 0.7662 & 0.0000 \\
+NT_1st_Obj & 0.7662 & 1.0000 & 1.0000 & 0.0000 & 0.0000 & 1.0000 & 0.0007 \\
+NT_All_Objs & 0.7997 & 1.0000 & 1.0000 & 0.0000 & 0.0000 & 1.0000 & 0.0006 \\
+NT_CD & 0.0000 & 0.0000 & 0.0000 & 1.0000 & 0.9872 & 0.0000 & 0.8962 \\
+NT_Ideal_Cand & 0.0000 & 0.0000 & 0.0000 & 0.9872 & 1.0000 & 0.0000 & 0.4325 \\
+NT_NE & 0.7662 & 1.0000 & 1.0000 & 0.0000 & 0.0000 & 1.0000 & 0.0007 \\
+NT_NSGA-II & 0.0000 & 0.0007 & 0.0006 & 0.8962 & 0.4325 & 0.0007 & 1.0000 \\
+\bottomrule
+\end{tabular}
