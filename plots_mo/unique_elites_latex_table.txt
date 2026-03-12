@@ -1,0 +1,22 @@
+\begin{table}[htpb]
+\centering
+\caption{Average number of unique elites preserved per generation using the All Objectives strategy.}
+\label{tab:unique_elites}
+\begin{tabular}{llcc}
+\toprule
+\textbf{Dataset} & \textbf{Scenario} & \textbf{Max Objectives ($M$)} & \textbf{Unique Elites Kept} \\
+\midrule
+Cooling & 2 Objs & 2 & 1.18 $\pm$ 0.25 \\
+ & 3 Objs & 3 & 2.00 $\pm$ 0.00 \\
+ & 5 Objs & 5 & 2.01 $\pm$ 0.00 \\
+\midrule
+Toxicity & 2 Objs & 2 & 1.93 $\pm$ 0.12 \\
+ & 3 Objs & 3 & 1.98 $\pm$ 0.14 \\
+ & 5 Objs & 5 & 2.07 $\pm$ 0.05 \\
+\midrule
+Boston & 2 Objs & 2 & 1.86 $\pm$ 0.19 \\
+ & 3 Objs & 3 & 2.00 $\pm$ 0.01 \\
+ & 5 Objs & 5 & 2.11 $\pm$ 0.24 \\
+\bottomrule
+\end{tabular}
+\end{table}
