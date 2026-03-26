@@ -1,8 +1,7 @@
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
+# Note: there is a part that is very experiment-specific, related to tracking the number of unique elites preserved and the best 1st obj (RMSE) elite. 
+# This part is marked in the code with comments. "finding the elite(s) of the current population after ..."
 
 """
 Multi-Objective Genetic Programming (MOGP) module.
@@ -211,13 +210,6 @@ class MOGP(GP):
             )
 
         # EVOLUTIONARY PROCESS
-        
-        #no longer makes sense because of all_obj elitism
-        # if offspring_size is None:
-        #     n_offspring = self.pop_size
-        # else:
-        #     n_offspring = offspring_size
-
         for it in range(1, n_iter + 1):
             
             # finding the elite(s) of the current generation (before generating offsprings, for logging purposes)
@@ -250,10 +242,13 @@ class MOGP(GP):
             # finding the elite(s) of the current population after survival, to be used in logging and tracking
             population.non_dominated_sorting(self.minimization_flags)
             self.elites, self.elite = self.find_mo_elit_func(population, max(1, n_elites), self.minimization_flags)
-            ###################Created by me: just for our experiments
+            # Tracking metrics for the specific experimental analysis
+            # 1. Track the number of unique elites effectively preserved (done for NT_All_Objs)
             num_unique_elites = len(self.elites)
+            
+            # 2. Identify the absolute best individual in terms of RMSE (Objective 0) in our experiments
+            # This allows tracking the pure predictive performance separately from the algorithm's chosen MO elite
             rmse_elite = min(population.population, key=lambda ind: ind.fitness[0])
-            ###################
 
             if test_elite:
                 self.elite.evaluate(fitness_functions=ffunction, X=X_test, y=y_test, testing=True)
@@ -261,6 +256,7 @@ class MOGP(GP):
                     rmse_elite.evaluate(fitness_functions=ffunction, X=X_test, y=y_test, testing=True)
                 else:
                     rmse_elite.test_fitness = self.elite.test_fitness
+
 
             # logging the results if log != 0
             if log != 0:

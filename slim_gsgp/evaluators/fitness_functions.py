@@ -143,11 +143,9 @@ def r2_score(y_true: torch.Tensor, y_pred: torch.Tensor) -> torch.Tensor:
     r2 = 1 - (ss_res / ss_tot)
     return r2
 
-############################################################################
-#                                                                          #
-# Created by me: size()                                                    #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
+# Created: size function
 def size(y_true: torch.Tensor, y_pred: float) -> torch.Tensor:
     """
     Compute the size (node count) of the tree.

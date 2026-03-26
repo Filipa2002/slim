@@ -53,11 +53,14 @@ def protected_div(x1, x2):
         torch.tensor(1.0, dtype=x2.dtype, device=x2.device),
     )
 
-############################################################################
-#                                                                          #
-# Created by me: protected_mod, protected_pow                              #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
+# Created: protected_mod, protected_pow, mo_verbose_reporter, find_mo_elites_default, 
+# find_mo_elites_ideal_candidate, get_current_ideal_point, calculate_normalized_distances
+# _traverse_count_nao, _traverse_count_naoc, _traverse_get_features, num_nao, 
+# num_consecutive_nao, num_features, find_mo_elites_all_objectives and also adapted validate_inputs 
+#######################################################################
+      
 def protected_mod(x1, x2):
     """
     Implements the modulo protected against zero denominator
@@ -302,11 +305,6 @@ def verbose_reporter(
             + "|"
         )
 
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
 def mo_verbose_reporter(
         dataset, generation, pop_val_fitness_vector, pop_test_fitness_vector, timing, nodes
 ):
@@ -452,18 +450,6 @@ def get_best_max(population, n_elites):
         elite = population.population[np.argmax(population.fit)]
         return [elite], elite
     
-
-
-
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-# find_mo_elites_default function                                          #
-# find_mo_elites_ideal_candidate
-# get_current_ideal_point 
-# calculate_normalized_distances                                                                        #
-############################################################################
 
 # helper function to find current ideal point
 def get_current_ideal_point(population, minimization_flags):
@@ -830,7 +816,9 @@ def gs_size(y_true, y_pred):
     int
         The size of the predicted values.
     """
-    if isinstance(y_pred, (list, tuple)):    #APAGAR
+    # In GSGP, y_pred is often passed as a tuple (semantics, size)
+    # to avoid reconstructing and traversing large trees
+    if isinstance(y_pred, (list, tuple)):
         if len(y_pred) > 1:
             return y_pred[1]
         else:
@@ -851,10 +839,9 @@ def gs_size(y_true, y_pred):
 
     raise TypeError(f"gs_size received unknown type: {type(y_pred)}")
 
-#######################################################################
-#     Created by me                                                   #
-#                                                                     #
-#######################################################################
+
+
+
 ARITHMETIC_OPS = {'add', 'subtract', 'multiply', 'divide'} 
 
 def _traverse_count_nao(tree_repr):
@@ -938,8 +925,10 @@ def _traverse_get_features(tree_repr, feature_set):
     None
         Populates feature_set with unique features found in the tree.
     """
-    if isinstance(tree_repr, torch.Tensor):      #APAGAR
-        if tree_repr.ndim == 0: return
+    # Handles Ephemeral Random Constants (ERCs), which are stored
+    # directly as zero-dimensional (scalar) PyTorch tensors in the tree
+    if isinstance(tree_repr, torch.Tensor):
+        if tree_repr.ndim == 0: return # valid constant, ignore and proceed
         else:
             raise ValueError(f"Found non-scalar Tensor in tree structure: shape {tree_repr.shape}")
     
@@ -1014,13 +1003,6 @@ def num_features(y_true, ind_repr):
     f_set = set()
     _traverse_get_features(ind_repr, f_set)
     return float(len(f_set))
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-# adapted       validate_inputs                                            #
-#                                                                          #
-############################################################################
 
 def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism, n_elites, init_depth, log_path,
                     prob_const, tree_functions, tree_constants, log, verbose, minimization, n_jobs, test_elite,
@@ -1104,11 +1086,6 @@ def validate_inputs(X_train, y_train, X_test, y_test, pop_size, n_iter, elitism,
 
     if offspring_size is not None and not isinstance(offspring_size, int):
         raise TypeError("offspring_size must be an int or None")
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
 
     is_mogp = isinstance(fitness_function, list)
     if is_mogp:
@@ -1273,12 +1250,6 @@ def _evaluate_slim_individual(individual, ffunction, y, testing=False, operator=
                 ),
             )
 
-
-############################################################################
-#                                                                          #
-# Created by me: find unique elites                                        #
-#                                                                          #
-############################################################################
 def find_mo_elites_all_objectives(population, minimization_flags):
     """
     Selects the best individual for each objective separately.

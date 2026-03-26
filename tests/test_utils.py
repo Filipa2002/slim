@@ -20,14 +20,6 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-############################################################################
-#                                                                          #
-# Created by me: test_find_mo_elites_default_first_obj()                   #
-#                test_find_mo_elites_default_nsga2_logic()                 #
-#                test_find_mo_elites_ideal_candidate()                     #
-#                test_find_mo_elites_ideal_candidate_recalculates_fit()    #
-#                                                                          #
-############################################################################
 import pytest
 import torch
 import random
@@ -124,6 +116,12 @@ def test_get_best_min():
 
         assert (example1 in result1 and example2 in result1 and example3 in result1 and
                 result2 == example1)        
+
+
+# Author: Filipa Pereira
+# Date: March 2026
+# Created: test_find_mo_elites_default_first_obj(), test_find_mo_elites_default_nsga2_logic(),               #
+# test_find_mo_elites_ideal_candidate(), test_find_mo_elites_ideal_candidate_recalculates_fit(),... 
 
 def test_find_mo_elites_default_first_obj():
     ind_a = MockIndiv(torch.tensor([1.0, 10.0]))

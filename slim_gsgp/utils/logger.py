@@ -75,24 +75,13 @@ def merge_settings(sd1: dict, sd2: dict, sd3: dict, sd4: dict) -> dict:
     """
     return {**sd1, **sd2, **sd3, **sd4}
 
-
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-# 1. elite_fit: str or float, 2. (and inside """elite_fit : float or str   #
-#                        Fitness value(s) of the elite individual""")      #
-#                                                                          #
-#  3. infos.extend([seed, generation, elite_fit, timing, nodes])           #
-#                                                                          # 
-#  4. if additional_infos is not None: ...                                 #
-############################################################################
-
+# Author: Filipa Pereira
+# Date: March 2026
+# few changes were made like elite_fit: float, to elite_fit: Union[float, str]
 
 def logger(
     path: str,
     generation: int,
-    #elite_fit: float,
     elite_fit: Union[float, str],
     timing: float,
     nodes: int,
@@ -131,18 +120,7 @@ def logger(
     with open(path, "a", newline="") as file:
         writer = csv.writer(file)
         infos = copy(run_info) if run_info is not None else []
-        #infos.extend([seed, generation, float(elite_fit), timing, nodes])
         infos.extend([seed, generation, elite_fit, timing, nodes])
-
-        #old:
-        # if additional_infos is not None:
-        #     try:
-        #         additional_infos[0] = float(additional_infos[0])
-        #     except:
-        #         additional_infos[0] = "None"
-        #     infos.extend(additional_infos)
-
-        # writer.writerow(infos)
         
         if additional_infos is not None:
             processed_infos = []

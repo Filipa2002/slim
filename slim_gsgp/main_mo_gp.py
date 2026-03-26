@@ -1,8 +1,5 @@
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
 
 """
 This script runs the Multi-Objective Genetic Programming (MOGP) algorithm 

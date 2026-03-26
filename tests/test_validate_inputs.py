@@ -19,16 +19,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-############################################################################
-#                                                                          #
-# Created by me: offspring_size,                                           #
-#                test_validate_mo_mismatch_lengths                         #
-#                test_validate_mo_invalid_minimization_type                #
-#                test_validate_mo_invalid_tournament_size_value            #
-#                test_validate_mo_requires_lists                           #
-#                test_validate_so_requires_singles                         #
-#                                                                          #
-############################################################################
+
+
+# Author: Filipa Pereira
+# Date: March 2026
+# Added the inputs "offspring_size" and created: test_validate_mo_mismatch_lengths,
+# test_validate_mo_invalid_minimization_type, test_validate_mo_invalid_tournament_size_value            #
+# test_validate_mo_requires_lists, test_validate_so_requires_singles...
 
 import pytest
 import torch

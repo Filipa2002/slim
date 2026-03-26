@@ -1,8 +1,5 @@
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
 
 from joblib import Parallel, delayed
 import torch

@@ -1,8 +1,5 @@
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
 
 from slim_gsgp.algorithms.GP.representations.tree import Tree
 import torch

@@ -126,12 +126,9 @@ def tournament_selection_max(pool_size):
 
     return ts
 
-
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
+# Created: nested_tournament_selection and tournament_selection_nsga2
 
 def nested_tournament_selection(tournament_sizes: list, minimization_flags: list):
     """

@@ -1,8 +1,5 @@
-############################################################################
-#                                                                          #
-# Created by me                                                            #
-#                                                                          #
-############################################################################
+# Author: Filipa Pereira
+# Date: March 2026
 
 import copy
 from slim_gsgp.algorithms.GP.representations.mo_population import MultiObjectivePopulation

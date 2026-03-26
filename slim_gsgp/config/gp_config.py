@@ -94,11 +94,10 @@ fitness_function_options = {
     "naoc": utils.num_consecutive_nao,
     "features": utils.num_features
 }
-###################################################################################################
-#                                                                                                 #
-# Created by me (this and "size","r2_score","nao", "c...nao", "features" into ffunction_options)  #
-#                                                                                                 #
-###################################################################################################
+
+# Author: Filipa Pereira
+# Date: March 2026
+# Created mo_parameters and added things like "size", "r2_score", "nao",... into ffunction_options
 mo_parameters = {
     "mo_fitness_functions": ["rmse", "size"], 
     "mo_minimization_flags": [True, True],
